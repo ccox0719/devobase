@@ -284,6 +284,20 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
   border-radius: 20px; padding: 3px 11px; font-size: 11px; color: var(--ink3);
 }
 .dv-leader-block { background: rgba(78,99,71,0.08); border-left: 3px solid var(--sage); padding: 12px 15px; border-radius: 0 var(--r) var(--r) 0; }
+.dv-scripture-block {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 16.5px; font-weight: 300; line-height: 1.9; color: var(--ink);
+  background: rgba(30,26,18,0.03); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 18px 20px;
+}
+.dv-scripture-block sup {
+  font-size: 9px; color: var(--gold); margin-right: 2px; vertical-align: super;
+  font-family: 'Karla', sans-serif; font-weight: 700; letter-spacing: 0;
+}
+.dv-sp { margin-bottom: 12px; }
+.dv-sp:last-of-type { margin-bottom: 0; }
+.dv-sv { margin-right: 3px; }
+.dv-bsb-credit { margin-top: 12px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink3); opacity: .5; }
 
 /* ══ Leader Mode ════════════════════════════════════════════════════════════ */
 .lm-overlay {
@@ -1153,6 +1167,125 @@ function showToast(msg, isErr = false) {
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
+   BSB BIBLE API  (bible.helloao.org — same as dailylite)
+   ════════════════════════════════════════════════════════════════════════════ */
+const BSB_BASE = 'https://bible.helloao.org/api';
+const BSB_TR   = 'BSB';
+let _bsbBooks       = null;
+let _bsbBookPromise = null;
+const _bsbCache     = new Map();
+
+function _normBook(name) {
+  return name ? name.replace(/[^a-z0-9]/gi, '').toUpperCase() : '';
+}
+
+function _parseRef(ref) {
+  if (!ref) return null;
+  const cleaned = ref.replace(/[–—]/g, '-').trim();
+  const m = cleaned.match(/^(.+?)\s+(\d+)(?::(\d+)(?:-(\d+))?)?$/);
+  if (!m) return null;
+  const chapter = Number(m[2]);
+  const start   = m[3] ? Number(m[3]) : 1;
+  const end     = m[4] ? Number(m[4]) : (m[3] ? start : Infinity);
+  if (Number.isNaN(chapter)) return null;
+  return { bookName: m[1].trim(), chapter, start: Math.max(1, start), end: Math.max(start, end) };
+}
+
+function _loadBsbBooks() {
+  if (_bsbBooks) return Promise.resolve(_bsbBooks);
+  if (_bsbBookPromise) return _bsbBookPromise;
+  _bsbBookPromise = fetch(`${BSB_BASE}/${BSB_TR}/books.json`)
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      _bsbBooks = new Map();
+      (data?.books || []).forEach(b => {
+        [b.name, b.commonName, b.title, b.englishName, b.shortName].forEach(n => {
+          if (n) _bsbBooks.set(_normBook(n), b.id);
+        });
+      });
+      return _bsbBooks;
+    })
+    .catch(() => { _bsbBookPromise = null; return null; });
+  return _bsbBookPromise;
+}
+
+function _flatTokens(tokens) {
+  if (!Array.isArray(tokens)) return '';
+  return tokens.map(t =>
+    typeof t === 'string' ? t : t?.text ? t.text : t?.lineBreak ? '\n' : ''
+  ).join(' ')
+    .replace(/\s*\n\s*/g, '\n').replace(/\s{2,}/g, ' ')
+    .replace(/ ([,;:.!?])/g, '$1').replace(/([,;:.!?])(?=[A-Za-z0-9])/g, '$1 ')
+    .trim();
+}
+
+function _fixSpacing(text) {
+  return (text || '')
+    .replace(/([,;:.!?])(?=[A-Za-z])/g, '$1 ')
+    .replace(/\b(LORD|GOD)([A-Za-z])/g, '$1 $2');
+}
+
+async function fetchBsbVerses(reference) {
+  if (!reference) return null;
+  if (_bsbCache.has(reference)) return _bsbCache.get(reference);
+
+  const parsed = _parseRef(reference);
+  if (!parsed) { _bsbCache.set(reference, null); return null; }
+
+  const lookup = await _loadBsbBooks();
+  if (!lookup) { _bsbCache.set(reference, null); return null; }
+
+  const bookId = lookup.get(_normBook(parsed.bookName));
+  if (!bookId) { _bsbCache.set(reference, null); return null; }
+
+  try {
+    const res  = await fetch(`${BSB_BASE}/${BSB_TR}/${bookId}/${parsed.chapter}.json`);
+    if (!res.ok) throw new Error('chapter fetch failed');
+    const data = await res.json();
+    const content = data?.chapter?.content;
+    if (!Array.isArray(content)) { _bsbCache.set(reference, null); return null; }
+
+    let pendingParagraph = false;
+    const verses = [];
+    content.forEach(block => {
+      if (block?.type === 'line_break') { pendingParagraph = true; return; }
+      if (block?.type !== 'verse') return;
+      const n = Number(block.number);
+      if (Number.isNaN(n) || n < parsed.start || n > parsed.end) return;
+      const text = _fixSpacing(_flatTokens(block.content));
+      if (text) { verses.push({ n, text, newPara: pendingParagraph }); pendingParagraph = false; }
+    });
+
+    const result = verses.length ? verses : null;
+    _bsbCache.set(reference, result);
+    return result;
+  } catch {
+    _bsbCache.set(reference, null);
+    return null;
+  }
+}
+
+function renderBsbHtml(verses) {
+  if (!verses?.length) return '';
+  const groups = [];
+  let cur = [];
+  verses.forEach(v => {
+    if (v.newPara && cur.length) { groups.push(cur); cur = []; }
+    cur.push(v);
+  });
+  if (cur.length) groups.push(cur);
+
+  const body = groups.map(grp => {
+    const inner = grp.map(v =>
+      `<span class="dv-sv"><sup>${v.n}</sup>${esc(v.text)}</span>`
+    ).join(' ');
+    return `<p class="dv-sp">${inner}</p>`;
+  }).join('');
+
+  return `${body}<div class="dv-bsb-credit">Berean Standard Bible</div>`;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
    PARSE RAW SECTIONS
    ════════════════════════════════════════════════════════════════════════════ */
 function parseRawSections(rawText) {
@@ -1235,6 +1368,13 @@ function openDetailView(id) {
       <div class="dv-verse-ref">— ${esc(l.key_verse_ref || l.scripture_ref || '')}</div>
     </div>` : ''}
 
+    ${l.scripture_ref ? `<div class="dv-section">
+      <div class="dv-section-label">Scripture · BSB</div>
+      <div class="dv-scripture-block" id="dvScriptureBlock">
+        <span style="opacity:.35;font-style:italic;font-size:13px">Loading passage…</span>
+      </div>
+    </div>` : ''}
+
     <div class="dv-section">
       <div class="dv-section-label">Themes &amp; Tags</div>
       <div class="dv-tags-wrap">${bookTag}${themeTags}${topicTags}${audTags}</div>
@@ -1281,6 +1421,17 @@ function openDetailView(id) {
   dv.style.display = 'block';
   dv.scrollTop = 0;
   document.body.style.overflow = 'hidden';
+
+  // Async: fetch and render the BSB passage
+  if (l.scripture_ref) {
+    fetchBsbVerses(l.scripture_ref).then(verses => {
+      const el = document.getElementById('dvScriptureBlock');
+      if (!el) return;
+      el.innerHTML = verses
+        ? renderBsbHtml(verses)
+        : `<span style="opacity:.35;font-style:italic;font-size:13px">Passage not found for "${esc(l.scripture_ref)}".</span>`;
+    });
+  }
 }
 
 function closeDetailView() {
