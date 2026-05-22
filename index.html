@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Devotional Library</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./env.js"></script>
+<style>
+/* ── Reset ───────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #f2ece0;
+  --surface:  #faf6ee;
+  --border:   #ddd5be;
+  --ink:      #1e1a12;
+  --ink2:     #4a4030;
+  --ink3:     #7a6e58;
+  --gold:     #b07d2a;
+  --sage:     #4e6347;
+  --rust:     #8c3b28;
+  --shadow:   rgba(30,26,18,0.10);
+  --divider:  rgba(176,125,42,0.22);
+  --r:        3px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Karla', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+  background-image:
+    radial-gradient(ellipse 60% 40% at 15% 5%,  rgba(176,125,42,0.07) 0%, transparent 100%),
+    radial-gradient(ellipse 50% 40% at 85% 95%, rgba(78,99,71,0.07)   0%, transparent 100%);
+}
+
+.wrap { max-width: 1040px; margin: 0 auto; padding: 36px 22px 90px; }
+
+/* ── Settings ─────────────────────────────────────────────────────────────── */
+.settings-bar {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 14px 16px; margin-bottom: 32px;
+  box-shadow: 0 1px 6px var(--shadow); transition: border-left .2s;
+}
+.settings-bar.ok { border-left: 3px solid var(--sage); }
+.s-field { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 190px; }
+.s-label { font-size: 9.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--gold); }
+.s-input {
+  border: 1px solid var(--border); background: var(--bg); border-radius: var(--r);
+  padding: 7px 10px; font-family: 'Karla', sans-serif; font-size: 12.5px;
+  font-weight: 300; color: var(--ink); outline: none; transition: border-color .18s; width: 100%;
+}
+.s-input:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(176,125,42,0.12); }
+.s-btn {
+  padding: 0 16px; height: 34px; background: var(--ink); color: var(--bg);
+  border: none; border-radius: var(--r); font-family: 'Karla', sans-serif;
+  font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+  cursor: pointer; white-space: nowrap; align-self: flex-end; transition: background .15s;
+}
+.s-btn:hover { background: var(--ink2); }
+.s-pill {
+  display: none; align-items: center; gap: 5px; align-self: flex-end;
+  padding-bottom: 2px; font-size: 11.5px; color: var(--sage); font-weight: 500;
+}
+.settings-bar.ok .s-pill { display: flex; }
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+header { text-align: center; padding-bottom: 28px; margin-bottom: 32px; border-bottom: 1px solid var(--divider); }
+.orn { color: var(--gold); letter-spacing: 14px; font-size: 15px; opacity: .5; margin-bottom: 10px; }
+header h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(28px,5.5vw,46px); font-weight: 300; letter-spacing: .03em; line-height: 1.15; }
+header h1 em { color: var(--gold); font-style: italic; }
+.tagline { margin-top: 8px; font-size: 11px; font-weight: 400; letter-spacing: .18em; text-transform: uppercase; color: var(--ink3); }
+
+/* ── Columns ──────────────────────────────────────────────────────────────── */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+@media (max-width: 680px) { .cols { grid-template-columns: 1fr; } }
+
+/* ── Card ─────────────────────────────────────────────────────────────────── */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); box-shadow: 0 2px 14px var(--shadow); overflow: hidden; }
+.card-hd { display: flex; align-items: center; gap: 8px; padding: 13px 16px 11px; border-bottom: 1px solid var(--divider); background: rgba(255,255,255,.35); }
+.card-hd-icon { font-size: 14px; opacity: .75; }
+.card-hd-title { font-family: 'Cormorant Garamond', serif; font-size: 13.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--ink2); }
+
+/* ── Input panel ──────────────────────────────────────────────────────────── */
+.input-body { padding: 14px; }
+textarea {
+  width: 100%; min-height: 340px; background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 13px 14px; font-family: 'Karla', sans-serif;
+  font-size: 13px; font-weight: 300; line-height: 1.75; color: var(--ink);
+  resize: vertical; outline: none; transition: border-color .18s, box-shadow .18s;
+}
+textarea:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(176,125,42,0.10); }
+textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
+
+.parse-btn {
+  margin-top: 11px; width: 100%; padding: 11px 18px; background: var(--ink);
+  color: var(--bg); border: none; border-radius: var(--r); font-family: 'Karla', sans-serif;
+  font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  gap: 8px; transition: background .15s, transform .1s;
+}
+.parse-btn:hover { background: var(--ink2); }
+.parse-btn:active { transform: translateY(1px); }
+
+/* ── Output panel ─────────────────────────────────────────────────────────── */
+.empty-state { padding: 52px 20px; text-align: center; color: rgba(74,64,48,.3); }
+.empty-icon { font-size: 28px; display: block; margin-bottom: 10px; opacity: .4; }
+.empty-state p { font-family: 'Cormorant Garamond', serif; font-size: 17px; font-style: italic; font-weight: 300; }
+
+.result { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+
+.meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mf { background: rgba(242,236,224,.6); border: 1px solid var(--border); border-radius: var(--r); padding: 9px 11px; }
+.mf.full { grid-column: 1/-1; }
+.ml { font-size: 9.5px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--gold); margin-bottom: 3px; }
+.mv { font-family: 'Cormorant Garamond', serif; font-size: 15px; font-weight: 400; color: var(--ink); line-height: 1.4; }
+.mv.edit { outline: none; border-bottom: 1px dashed var(--border); min-width: 40px; display: inline-block; }
+.mv.edit:focus { border-bottom-color: var(--gold); }
+
+.hdiv { height: 1px; background: var(--divider); }
+
+.verse-block { background: rgba(176,125,42,0.06); border-left: 3px solid var(--gold); padding: 12px 14px; border-radius: 0 var(--r) var(--r) 0; }
+.verse-text { font-family: 'Cormorant Garamond', serif; font-size: 15px; font-style: italic; font-weight: 300; color: var(--ink); line-height: 1.65; margin-bottom: 5px; }
+.verse-ref { font-size: 10.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); }
+
+.tag-section-label { font-size: 9.5px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--ink3); margin-bottom: 6px; opacity: .6; }
+.tag-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+.tag { padding: 3px 9px; border-radius: 2px; font-size: 11px; font-weight: 500; letter-spacing: .03em; border: 1px solid; cursor: default; }
+.tag.theme  { background: rgba(176,125,42,0.10); border-color: rgba(176,125,42,0.35); color: #7a5410; }
+.tag.book   { background: rgba(78,99,71,0.12);  border-color: rgba(78,99,71,0.4);   color: var(--sage); }
+.tag.topic  { background: rgba(140,59,40,0.08); border-color: rgba(140,59,40,0.30); color: var(--rust); }
+.tag.aud    { background: rgba(30,26,18,0.06);  border-color: rgba(30,26,18,0.20);  color: var(--ink2); }
+.tag.add    { background: transparent; border-color: var(--border); color: var(--ink3); cursor: pointer; }
+.tag.add:hover { border-color: var(--gold); color: var(--gold); }
+.tag.remove { cursor: pointer; }
+.tag.remove:hover { opacity: .6; }
+
+.counts { display: flex; gap: 8px; }
+.count-pill { flex: 1; padding: 9px 8px; border: 1px solid var(--border); border-radius: var(--r); text-align: center; background: rgba(242,236,224,.5); }
+.count-n { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 300; color: var(--ink); line-height: 1; }
+.count-l { font-size: 9.5px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: rgba(74,64,48,.45); margin-top: 2px; }
+
+.leader-block { background: rgba(78,99,71,0.08); border-left: 3px solid var(--sage); padding: 11px 13px; border-radius: 0 var(--r) var(--r) 0; }
+
+.action-row { display: flex; gap: 8px; }
+.act-btn {
+  flex: 1; padding: 9px 10px; border-radius: var(--r); font-family: 'Karla', sans-serif;
+  font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  cursor: pointer; border: 1px solid; display: flex; align-items: center; justify-content: center; gap: 5px; transition: all .15s;
+}
+.act-copy { background: transparent; border-color: var(--ink2); color: var(--ink2); }
+.act-copy:hover { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.act-save { background: var(--gold); border-color: var(--gold); color: #fff; }
+.act-save:hover { background: #8c6118; border-color: #8c6118; }
+.act-save:disabled { background: var(--border); border-color: var(--border); color: var(--ink3); cursor: not-allowed; }
+
+/* ── Library ──────────────────────────────────────────────────────────────── */
+.lib-section { margin-top: 48px; }
+.lib-hd { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--divider); }
+.lib-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 300; color: var(--ink); display: flex; align-items: center; gap: 10px; }
+.lib-count { background: var(--ink); color: var(--bg); font-family: 'Karla', sans-serif; font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+.lib-controls { display: flex; gap: 8px; align-items: center; }
+.search-in {
+  background: rgba(242,236,224,.8); border: 1px solid var(--border); border-radius: var(--r);
+  padding: 6px 11px; font-family: 'Karla', sans-serif; font-size: 12.5px; font-weight: 300;
+  color: var(--ink); outline: none; width: 190px; transition: border-color .18s;
+}
+.search-in:focus { border-color: var(--gold); }
+.search-in::placeholder { color: rgba(74,64,48,.35); font-style: italic; }
+
+.lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+
+.lib-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+  padding: 16px; box-shadow: 0 1px 8px var(--shadow); cursor: pointer;
+  transition: all .2s; position: relative; overflow: hidden;
+}
+.lib-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--gold); opacity: 0; transition: opacity .2s; }
+.lib-card:hover { border-color: var(--gold); box-shadow: 0 4px 18px var(--shadow); transform: translateY(-1px); }
+.lib-card:hover::before { opacity: 1; }
+
+.lc-ref { font-size: 10.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); margin-bottom: 3px; }
+.lc-title { font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 400; color: var(--ink); margin-bottom: 8px; line-height: 1.3; }
+.lc-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.lc-meta { font-size: 11px; color: rgba(74,64,48,.45); display: flex; align-items: center; justify-content: space-between; }
+.lc-del { background: none; border: none; font-size: 13px; cursor: pointer; opacity: .25; transition: opacity .15s; color: var(--rust); }
+.lc-del:hover { opacity: .8; }
+
+.lib-empty { grid-column: 1/-1; text-align: center; padding: 44px 20px; color: rgba(74,64,48,.3); }
+.lib-empty p { font-family: 'Cormorant Garamond', serif; font-size: 17px; font-style: italic; font-weight: 300; }
+
+/* ── Toast ────────────────────────────────────────────────────────────────── */
+.toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--ink); color: var(--bg);
+  padding: 9px 20px; border-radius: var(--r);
+  font-size: 12.5px; font-weight: 400; letter-spacing: .04em;
+  transition: transform .28s cubic-bezier(.34,1.56,.64,1);
+  z-index: 999; pointer-events: none; white-space: nowrap;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.err  { background: var(--rust); }
+
+/* ── Fade in ──────────────────────────────────────────────────────────────── */
+@keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+.fade-in { animation: fadeUp .3s ease both; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Settings -->
+  <div class="settings-bar" id="settingsBar">
+    <div class="s-field">
+      <div class="s-label">Supabase URL</div>
+      <input class="s-input" id="cfgUrl" type="text" placeholder="https://xxxx.supabase.co" />
+    </div>
+    <div class="s-field">
+      <div class="s-label">Supabase Anon Key</div>
+      <input class="s-input" id="cfgKey" type="password" placeholder="eyJ…" />
+    </div>
+    <button class="s-btn" onclick="connect()">Connect</button>
+    <div class="s-pill" id="connPill">✦ Connected</div>
+  </div>
+
+  <div class="settings-bar" id="authBar">
+    <div class="s-field">
+      <div class="s-label">Email</div>
+      <input class="s-input" id="authEmail" type="email" placeholder="you@example.com" autocomplete="email" />
+    </div>
+    <div class="s-field">
+      <div class="s-label">Password</div>
+      <input class="s-input" id="authPassword" type="password" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+    <button class="s-btn" onclick="signIn()">Sign In</button>
+    <button class="s-btn" onclick="signUp()">Sign Up</button>
+    <button class="s-btn" onclick="sendReset()">Reset Email</button>
+    <button class="s-btn" onclick="signOut()" id="signOutBtn" style="display:none;">Sign Out</button>
+    <div class="s-pill" id="authPill">Signed out</div>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="orn">✦ ✦ ✦</div>
+    <h1>Devotional <em>Lesson</em> Library</h1>
+    <p class="tagline">Paste · Parse · Tag · Lead</p>
+  </header>
+
+  <!-- Main columns -->
+  <div class="cols">
+    <!-- Input -->
+    <div class="card">
+      <div class="card-hd">
+        <span class="card-hd-icon">📖</span>
+        <span class="card-hd-title">Paste Your Lesson</span>
+      </div>
+      <div class="input-body">
+        <textarea id="lessonInput" placeholder="Paste your devotional lesson here — title, scripture reference, devotional thought, reflection questions, application, and prayer…"></textarea>
+        <button class="parse-btn" onclick="parseLesson()">Parse &amp; Tag Lesson</button>
+      </div>
+    </div>
+
+    <!-- Output -->
+    <div class="card">
+      <div class="card-hd">
+        <span class="card-hd-icon">🏷️</span>
+        <span class="card-hd-title">Parsed Result</span>
+      </div>
+      <div id="output">
+        <div class="empty-state">
+          <span class="empty-icon">☩</span>
+          <p>Your parsed lesson will appear here</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Library -->
+  <div class="lib-section">
+    <div class="lib-hd">
+      <div class="lib-title">
+        Saved Lessons
+        <span class="lib-count" id="libCount">0</span>
+      </div>
+      <div class="lib-controls">
+        <input class="search-in" id="searchIn" type="text" placeholder="Search…" oninput="filterLib()" />
+      </div>
+    </div>
+    <div class="lib-grid" id="libGrid">
+      <div class="lib-empty"><p>Connect to Supabase to load your library</p></div>
+    </div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════════
+   PARSER  —  pure JS, no API key needed
+   ════════════════════════════════════════════════════════════════════════════ */
+
+// Scripture book name lookup for tagging
+const BIBLE_BOOKS = [
+  'Genesis','Exodus','Leviticus','Numbers','Deuteronomy','Joshua','Judges','Ruth',
+  '1 Samuel','2 Samuel','1 Kings','2 Kings','1 Chronicles','2 Chronicles',
+  'Ezra','Nehemiah','Esther','Job','Psalm','Psalms','Proverbs','Ecclesiastes',
+  'Song of Solomon','Isaiah','Jeremiah','Lamentations','Ezekiel','Daniel',
+  'Hosea','Joel','Amos','Obadiah','Jonah','Micah','Nahum','Habakkuk',
+  'Zephaniah','Haggai','Zechariah','Malachi',
+  'Matthew','Mark','Luke','John','Acts','Romans',
+  '1 Corinthians','2 Corinthians','Galatians','Ephesians','Philippians',
+  'Colossians','1 Thessalonians','2 Thessalonians','1 Timothy','2 Timothy',
+  'Titus','Philemon','Hebrews','James','1 Peter','2 Peter',
+  '1 John','2 John','3 John','Jude','Revelation'
+];
+
+// Theme keyword map — expand freely
+const THEME_MAP = {
+  'Light / Darkness':   ['light','darkness','lamp','illuminate','blind','see','vision','eye'],
+  'Humility':           ['humble','humility','pride','arrogant','meek','lowly','teachable'],
+  'Spiritual Perception':['perception','recognize','discern','discernment','spiritual sight','aware'],
+  'Heart':              ['heart','inner','inward','soul','spirit','within'],
+  'Repentance':         ['repent','repentance','turn','confess','confession','sorrow','sin'],
+  'Faith':              ['faith','believe','belief','trust','faithful'],
+  'Prayer':             ['pray','prayer','amen','petition','intercede','intercession'],
+  'Identity in Christ': ['identity','child of god','sons','daughters','beloved','chosen','image'],
+  'Obedience':          ['obey','obedience','command','commandment','follow','submit'],
+  'Grace':              ['grace','mercy','forgive','forgiveness','undeserved','compassion'],
+  'Truth':              ['truth','true','honest','honesty','reality','deception','lies'],
+  'Transformation':     ['transform','renew','renewal','change','restore','restoration','heal'],
+  'Suffering':          ['suffer','suffering','pain','trial','hardship','affliction','struggle'],
+  'Hope':               ['hope','hopeful','future','promise','eternity','eternal'],
+  'Love':               ['love','loving','beloved','affection','charity'],
+  'Wisdom':             ['wisdom','wise','understanding','knowledge','discern'],
+  'Community':          ['community','together','fellowship','church','body','one another'],
+  'Mission':            ['mission','witness','evangel','gospel','proclaim','sent','go'],
+};
+
+const AUDIENCE_MAP = {
+  'Adults':      ['adult','grown','mature'],
+  'Men':         ['\bmen\b','man','masculine','father','husband','brother'],
+  'Women':       ['women','woman','feminine','mother','wife','sister'],
+  'Teens':       ['teen','teenager','youth','young people','adolescent','high school'],
+  'Small Group': ['small group','group','together','community','discuss','discussion'],
+  'All Ages':    ['all ages','everyone','family','congregation','church'],
+};
+
+function parseLesson() {
+  const raw = document.getElementById('lessonInput').value.trim();
+  if (!raw) { showToast('Paste a lesson first', true); return; }
+
+  const lines   = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  const lower   = raw.toLowerCase();
+  const result  = {};
+
+  // ── Title ────────────────────────────────────────────────────────────────
+  // First non-empty line that isn't a scripture ref or "A Devotional from..."
+  result.title = lines.find(l =>
+    l.length > 2 &&
+    !/^a devotional/i.test(l) &&
+    !/^\d+:\d+/.test(l)
+  ) || 'Untitled';
+
+  // ── Subtitle ─────────────────────────────────────────────────────────────
+  const subMatch = raw.match(/A Devotional(?:\s+from)?\s+([^\n]+)/i);
+  result.subtitle = subMatch ? subMatch[1].trim() : '';
+
+  // ── Scripture reference ───────────────────────────────────────────────────
+  // Match "Book ch:v" or "Book ch:v–v" patterns
+  const refPattern = new RegExp(
+    '(' + BIBLE_BOOKS.map(b => b.replace(/\s/g, '\\s')).join('|') + ')' +
+    '\\s+(\\d+):(\\d+(?:[–\\-—]\\d+)?(?:,\\s*\\d+)*)',
+    'i'
+  );
+  const refMatch = raw.match(refPattern);
+  if (refMatch) {
+    result.scriptureRef  = refMatch[0].replace(/\s+/g, ' ').trim();
+    result.scriptureBook = BIBLE_BOOKS.find(b => b.toLowerCase() === refMatch[1].toLowerCase()) || refMatch[1];
+  } else {
+    result.scriptureRef  = '';
+    result.scriptureBook = '';
+  }
+
+  // ── Key verse ─────────────────────────────────────────────────────────────
+  // Quoted text inside the "Key Passage" or near the scripture ref
+  const quoteMatch = raw.match(/"([^"]{20,300})"/);
+  result.keyVerse = quoteMatch ? quoteMatch[1].trim() : '';
+
+  // Try to find attribution line after the quote (— Book ch:v)
+  if (quoteMatch) {
+    const afterQuote = raw.slice(raw.indexOf(quoteMatch[0]) + quoteMatch[0].length);
+    const attrMatch  = afterQuote.match(/^[\s\n]*[—–-]\s*([^\n]{3,60})/);
+    result.keyVerseRef = attrMatch ? attrMatch[1].trim() : result.scriptureRef;
+  } else {
+    result.keyVerseRef = result.scriptureRef;
+  }
+
+  // ── Summary ───────────────────────────────────────────────────────────────
+  // First 2–3 sentences from the body section (skip title/header lines)
+  const bodyStart = raw.search(/devotional thought|the teaching|jesus|paul|in this passage/i);
+  const bodyText  = bodyStart > -1 ? raw.slice(bodyStart) : raw;
+  const sentences = bodyText.match(/[A-Z][^.!?]{20,}[.!?]/g) || [];
+  result.summary  = sentences.slice(0, 3).join(' ');
+
+  // ── Themes ────────────────────────────────────────────────────────────────
+  result.themes = [];
+  for (const [theme, keywords] of Object.entries(THEME_MAP)) {
+    const pat = new RegExp(keywords.join('|'), 'i');
+    if (pat.test(lower)) result.themes.push(theme);
+    if (result.themes.length >= 6) break;
+  }
+  if (!result.themes.length) result.themes = ['General Devotional'];
+
+  // ── Topics (from reflection questions / application) ───────────────────────
+  const topicSection = raw.match(/reflection questions?([\s\S]{0,1200}?)(?:application|prayer|$)/i);
+  result.topics = [];
+  if (topicSection) {
+    const qText = topicSection[1].toLowerCase();
+    const topicWords = [
+      ['Identity',    /who am i|identity|image of god/],
+      ['Prayer',      /pray|prayer/],
+      ['Obedience',   /obey|obedience|follow/],
+      ['Relationships',[/relationship|others|people/]],
+      ['Heart Check', /heart|motive|honest|hidden/],
+      ['Transformation',[/change|transform|become/]],
+      ['Spiritual Growth',[/grow|growth|mature|disciple/]],
+      ['Community',   /group|together|church|body/],
+    ];
+    for (const [topic, pat] of topicWords) {
+      const re = Array.isArray(pat) ? pat[0] : pat;
+      if (re.test(qText)) result.topics.push(topic);
+    }
+  }
+  if (!result.topics.length) result.topics = ['Faith', 'Reflection'];
+
+  // ── Audience ──────────────────────────────────────────────────────────────
+  result.audience = [];
+  for (const [aud, keywords] of Object.entries(AUDIENCE_MAP)) {
+    const pat = new RegExp(keywords.join('|'), 'i');
+    if (pat.test(lower)) result.audience.push(aud);
+  }
+  if (!result.audience.length) result.audience = ['Adults', 'Small Group'];
+
+  // ── Reflection question count ─────────────────────────────────────────────
+  const qMatches = raw.match(/^\s*\d+\./gm) || [];
+  result.reflectionCount = qMatches.length;
+
+  // ── Has application / prayer ──────────────────────────────────────────────
+  result.hasApplication = /\bapplication\b/i.test(raw);
+  result.hasPrayer      = /\bprayer\b|\bamen\b/i.test(raw);
+
+  // ── Estimated time ────────────────────────────────────────────────────────
+  // ~2 min read + 3 min per question + 5 if has application + 3 for prayer
+  const wordCount = raw.split(/\s+/).length;
+  result.estimatedMinutes =
+    Math.round(wordCount / 200) +
+    result.reflectionCount * 3 +
+    (result.hasApplication ? 5 : 0) +
+    (result.hasPrayer ? 3 : 0);
+
+  // ── Tone ─────────────────────────────────────────────────────────────────
+  const toneMap = {
+    'Convicting':    /convict|warn|danger|sober|careful|honest before/i,
+    'Encouraging':   /encourage|hope|confident|assur|blessed|delight/i,
+    'Contemplative': /reflect|quiet|ponder|consider|meditat/i,
+    'Challenging':   /challeng|stretch|uncomfortable|difficult|hard/i,
+    'Hopeful':       /hope|promis|future|restoration|heal|new/i,
+    'Instructive':   /teach|instruct|learn|lesson|principle|truth/i,
+  };
+  result.tone = 'Reflective';
+  for (const [tone, pat] of Object.entries(toneMap)) {
+    if (pat.test(raw)) { result.tone = tone; break; }
+  }
+
+  // ── Leader notes ──────────────────────────────────────────────────────────
+  const notes = [];
+  if (result.reflectionCount > 5) notes.push(`${result.reflectionCount} questions — consider selecting 3–4 for your group.`);
+  if (result.hasApplication)      notes.push('Includes a practical application section — great for closing challenge.');
+  if (result.hasPrayer)           notes.push('Ends with a written prayer — can be read aloud or used as a group close.');
+  if (!notes.length)              notes.push('Review passage context before leading. Allow space for honest sharing.');
+  result.leadingNotes = notes.join(' ');
+
+  // ── Raw text for storage ───────────────────────────────────────────────────
+  result.rawText = raw;
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  window._parsed = result;
+  renderResult(result);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   RENDER RESULT
+   ════════════════════════════════════════════════════════════════════════════ */
+function renderResult(d) {
+  const themeHTML    = d.themes.map(t  => tagEl(t, 'theme',  'remove')).join('');
+  const topicHTML    = d.topics.map(t  => tagEl(t, 'topic',  'remove')).join('');
+  const audienceHTML = d.audience.map(a => tagEl(a, 'aud',   'remove')).join('');
+  const bookHTML     = d.scriptureBook ? tagEl(d.scriptureBook, 'book') : '';
+  const checks       = [d.hasApplication, d.hasPrayer].filter(Boolean).length;
+
+  document.getElementById('output').innerHTML = `
+  <div class="result fade-in">
+
+    <div class="meta-grid">
+      <div class="mf full">
+        <div class="ml">Title</div>
+        <div class="mv edit" contenteditable="true" oninput="updateField('title',this.innerText)">${esc(d.title)}</div>
+      </div>
+      ${d.subtitle ? `<div class="mf full"><div class="ml">Subtitle</div><div class="mv">${esc(d.subtitle)}</div></div>` : ''}
+      <div class="mf">
+        <div class="ml">Scripture</div>
+        <div class="mv edit" contenteditable="true" oninput="updateField('scriptureRef',this.innerText)">${esc(d.scriptureRef) || '<span style="opacity:.4;font-style:italic">not detected</span>'}</div>
+      </div>
+      <div class="mf">
+        <div class="ml">Tone</div>
+        <div class="mv edit" contenteditable="true" oninput="updateField('tone',this.innerText)">${esc(d.tone)}</div>
+      </div>
+    </div>
+
+    <div class="hdiv"></div>
+
+    <div class="verse-block">
+      <div class="verse-text">${d.keyVerse ? `"${esc(d.keyVerse)}"` : '<span style="opacity:.4;font-style:italic">No quoted verse detected — paste in quotes if needed</span>'}</div>
+      <div class="verse-ref">— ${esc(d.keyVerseRef)}</div>
+    </div>
+
+    <div class="hdiv"></div>
+
+    <div>
+      <div class="tag-section-label">Themes</div>
+      <div class="tag-row" id="tagThemes">${bookHTML}${themeHTML}<span class="tag add" onclick="addTag('themes','tagThemes','theme')">+ add</span></div>
+      <div class="tag-section-label">Topics</div>
+      <div class="tag-row" id="tagTopics">${topicHTML}<span class="tag add" onclick="addTag('topics','tagTopics','topic')">+ add</span></div>
+      <div class="tag-section-label">Audience</div>
+      <div class="tag-row" id="tagAudience">${audienceHTML}<span class="tag add" onclick="addTag('audience','tagAudience','aud')">+ add</span></div>
+    </div>
+
+    <div class="hdiv"></div>
+
+    <div>
+      <div class="ml" style="margin-bottom:7px">Summary</div>
+      <div style="font-size:13px;font-weight:300;line-height:1.75;color:var(--ink2)">${esc(d.summary) || '<span style="opacity:.4;font-style:italic">Could not extract summary</span>'}</div>
+    </div>
+
+    ${d.leadingNotes ? `
+    <div class="leader-block">
+      <div class="ml" style="color:var(--sage);margin-bottom:4px">Leader Notes</div>
+      <div style="font-size:13px;font-weight:300;line-height:1.65;color:var(--ink2)">${esc(d.leadingNotes)}</div>
+    </div>` : ''}
+
+    <div class="counts">
+      <div class="count-pill">
+        <div class="count-n">${d.reflectionCount}</div>
+        <div class="count-l">Questions</div>
+      </div>
+      <div class="count-pill">
+        <div class="count-n">${d.estimatedMinutes}</div>
+        <div class="count-l">Min. Est.</div>
+      </div>
+      <div class="count-pill">
+        <div class="count-n">${checks}/2</div>
+        <div class="count-l">App+Prayer</div>
+      </div>
+    </div>
+
+    <div class="action-row">
+      <button class="act-btn act-copy" onclick="copyJSON()">⎘ Copy JSON</button>
+      <button class="act-btn act-save" id="saveBtn" onclick="saveLesson()">✦ Save to Library</button>
+    </div>
+
+  </div>`;
+}
+
+function tagEl(text, cls, action) {
+  if (action === 'remove') {
+    return `<span class="tag ${cls} remove" title="Click to remove" onclick="removeTag(this,'${cls}')">${esc(text)} ×</span>`;
+  }
+  return `<span class="tag ${cls}">${esc(text)}</span>`;
+}
+
+function removeTag(el, cls) {
+  const text = el.innerText.replace(/\s×$/, '').trim();
+  el.remove();
+  if (!window._parsed) return;
+  const key = cls === 'theme' ? 'themes' : cls === 'topic' ? 'topics' : 'audience';
+  window._parsed[key] = (window._parsed[key] || []).filter(t => t !== text);
+}
+
+function addTag(field, rowId, cls) {
+  const val = prompt(`Add a ${field.slice(0,-1)} tag:`);
+  if (!val || !val.trim()) return;
+  const tag = val.trim();
+  if (!window._parsed[field]) window._parsed[field] = [];
+  window._parsed[field].push(tag);
+  const addBtn = document.querySelector(`#${rowId} .add`);
+  const span = document.createElement('span');
+  span.className = `tag ${cls} remove`;
+  span.title = 'Click to remove';
+  span.innerHTML = `${esc(tag)} ×`;
+  span.onclick = () => removeTag(span, cls);
+  addBtn.before(span);
+}
+
+function updateField(key, val) {
+  if (window._parsed) window._parsed[key] = val;
+}
+
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function copyJSON() {
+  if (!window._parsed) return;
+  const out = { ...window._parsed };
+  delete out.rawText;
+  navigator.clipboard.writeText(JSON.stringify(out, null, 2))
+    .then(() => showToast('JSON copied'))
+    .catch(() => showToast('Copy failed', true));
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SUPABASE
+   ════════════════════════════════════════════════════════════════════════════ */
+let sb = null;
+let allLessons = [];
+let currentUser = null;
+let authSubscription = null;
+const CFG_KEY = 'devot_cfg_v2';
+
+function loadCfg() {
+  try { return JSON.parse(localStorage.getItem(CFG_KEY) || '{}'); } catch { return {}; }
+}
+
+function getEnvCfg() {
+  const cfg = window.DEVOT_SUPABASE_CONFIG || {};
+  return {
+    url: (cfg.url || '').trim(),
+    key: (cfg.anonKey || cfg.key || '').trim(),
+  };
+}
+
+function getAuthValues() {
+  return {
+    email: document.getElementById('authEmail').value.trim(),
+    password: document.getElementById('authPassword').value,
+  };
+}
+
+function getUserLabel(user) {
+  if (!user) return 'Signed out';
+  return `Signed in as ${user.email || user.id.slice(0, 8)}`;
+}
+
+function renderSignedOutLibrary() {
+  allLessons = [];
+  document.getElementById('libCount').textContent = '0';
+  document.getElementById('libGrid').innerHTML = '<div class="lib-empty"><p>Sign in to load your library</p></div>';
+}
+
+function updateAuthUi() {
+  document.getElementById('authPill').textContent = getUserLabel(currentUser);
+  document.getElementById('signOutBtn').style.display = currentUser ? 'inline-flex' : 'none';
+}
+
+async function attachAuthState() {
+  if (!sb) return;
+
+  if (authSubscription?.subscription) {
+    authSubscription.subscription.unsubscribe();
+    authSubscription = null;
+  }
+
+  const { data, error } = await sb.auth.getSession();
+  if (error) {
+    showToast('Auth session error', true);
+    currentUser = null;
+    updateAuthUi();
+    renderSignedOutLibrary();
+    return;
+  }
+
+  currentUser = data.session?.user || null;
+  updateAuthUi();
+  if (currentUser) {
+    await loadLibrary();
+  } else {
+    renderSignedOutLibrary();
+  }
+
+  const { data: authData } = sb.auth.onAuthStateChange((_event, session) => {
+    currentUser = session?.user || null;
+    updateAuthUi();
+    if (currentUser) {
+      loadLibrary();
+    } else {
+      renderSignedOutLibrary();
+    }
+  });
+  authSubscription = authData;
+}
+
+async function connect(cfgOverride) {
+  const cfg = cfgOverride || {};
+  const url = (cfg.url || document.getElementById('cfgUrl').value).trim();
+  const key = (cfg.key || document.getElementById('cfgKey').value).trim();
+  if (!url || !key) { showToast('Enter Supabase URL and Anon Key', true); return; }
+
+  sb = window.supabase.createClient(url, key, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+    },
+  });
+
+  if (!cfgOverride) localStorage.setItem(CFG_KEY, JSON.stringify({ url, key }));
+  document.getElementById('cfgUrl').value = url;
+  document.getElementById('cfgKey').value = key;
+  document.getElementById('settingsBar').classList.add('ok');
+  document.getElementById('connPill').textContent = 'Supabase ready';
+  showToast('Supabase ready');
+  await attachAuthState();
+}
+
+async function signIn() {
+  if (!sb) { showToast('Connect Supabase first', true); return; }
+  const { email, password } = getAuthValues();
+  if (!email || !password) { showToast('Enter email and password', true); return; }
+
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) { showToast('Sign in failed: ' + error.message.slice(0, 50), true); return; }
+
+  document.getElementById('authPassword').value = '';
+  showToast('Signed in');
+}
+
+async function signUp() {
+  if (!sb) { showToast('Connect Supabase first', true); return; }
+  const { email, password } = getAuthValues();
+  if (!email || !password) { showToast('Enter email and password', true); return; }
+
+  const { data, error } = await sb.auth.signUp({ email, password });
+  if (error) { showToast('Sign up failed: ' + error.message.slice(0, 50), true); return; }
+
+  document.getElementById('authPassword').value = '';
+  if (data.session) {
+    showToast('Account created');
+  } else {
+    showToast('Check your email to confirm');
+  }
+}
+
+async function sendReset() {
+  if (!sb) { showToast('Connect Supabase first', true); return; }
+  const email = document.getElementById('authEmail').value.trim();
+  if (!email) { showToast('Enter your email first', true); return; }
+
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin,
+  });
+  if (error) { showToast('Reset failed: ' + error.message.slice(0, 50), true); return; }
+
+  showToast('Reset email sent');
+}
+
+async function signOut() {
+  if (!sb) return;
+  const { error } = await sb.auth.signOut();
+  if (error) { showToast('Sign out failed', true); return; }
+  currentUser = null;
+  updateAuthUi();
+  renderSignedOutLibrary();
+  showToast('Signed out');
+}
+
+async function saveLesson() {
+  if (!window._parsed) return;
+  const d = window._parsed;
+
+  if (!sb) {
+    // Offline fallback — save to localStorage
+    const lib = JSON.parse(localStorage.getItem('devot_local') || '[]');
+    lib.unshift({ ...d, id: Date.now(), created_at: new Date().toISOString() });
+    localStorage.setItem('devot_local', JSON.stringify(lib));
+    allLessons = lib;
+    showToast('Saved locally (no Supabase)');
+    renderLib(lib);
+    return;
+  }
+
+  if (!currentUser) {
+    showToast('Sign in required to save to Supabase', true);
+    return;
+  }
+
+  document.getElementById('saveBtn').disabled = true;
+  const { error } = await sb.from('devotional_lessons').insert({
+    user_id: currentUser.id,
+    title:             d.title,
+    subtitle:          d.subtitle || null,
+    scripture_ref:     d.scriptureRef || null,
+    scripture_book:    d.scriptureBook || null,
+    key_verse:         d.keyVerse || null,
+    key_verse_ref:     d.keyVerseRef || null,
+    summary:           d.summary || null,
+    themes:            d.themes || [],
+    topics:            d.topics || [],
+    audience:          d.audience || [],
+    tone:              d.tone || null,
+    reflection_count:  d.reflectionCount || 0,
+    has_application:   d.hasApplication || false,
+    has_prayer:        d.hasPrayer || false,
+    estimated_minutes: d.estimatedMinutes || null,
+    leading_notes:     d.leadingNotes || null,
+    raw_text:          d.rawText || null,
+  });
+
+  document.getElementById('saveBtn').disabled = false;
+  if (error) { showToast('Save failed: ' + error.message.slice(0,50), true); return; }
+  showToast('Lesson saved ✦');
+  loadLibrary();
+}
+
+async function loadLibrary() {
+  if (!sb) {
+    // Try local
+    const lib = JSON.parse(localStorage.getItem('devot_local') || '[]');
+    allLessons = lib;
+    renderLib(lib);
+    return;
+  }
+  if (!currentUser) {
+    allLessons = [];
+    renderSignedOutLibrary();
+    return;
+  }
+  const { data, error } = await sb
+    .from('devotional_lessons')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false });
+  if (error) { showToast('Library load failed', true); return; }
+  allLessons = data || [];
+  renderLib(allLessons);
+}
+
+function filterLib() {
+  const q = document.getElementById('searchIn').value.toLowerCase();
+  if (!q) { renderLib(allLessons); return; }
+  renderLib(allLessons.filter(l =>
+    (l.title||'').toLowerCase().includes(q) ||
+    (l.scripture_ref||'').toLowerCase().includes(q) ||
+    (l.themes||[]).some(t => t.toLowerCase().includes(q)) ||
+    (l.topics||[]).some(t => t.toLowerCase().includes(q)) ||
+    (l.tone||'').toLowerCase().includes(q)
+  ));
+}
+
+function renderLib(lessons) {
+  document.getElementById('libCount').textContent = allLessons.length;
+  const grid = document.getElementById('libGrid');
+  if (!lessons.length) {
+    grid.innerHTML = `<div class="lib-empty"><p>${allLessons.length ? 'No results match your search' : 'No lessons saved yet'}</p></div>`;
+    return;
+  }
+  grid.innerHTML = lessons.map(l => {
+    const tags = (l.themes||[]).slice(0,3).map(t => `<span class="tag theme" style="font-size:10px;padding:2px 6px">${esc(t)}</span>`).join('');
+    const date = new Date(l.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    return `
+      <div class="lib-card" onclick="loadCard('${l.id}')">
+        <div class="lc-ref">${esc(l.scripture_ref||'')}</div>
+        <div class="lc-title">${esc(l.title||'Untitled')}</div>
+        <div class="lc-tags">${tags}</div>
+        <div class="lc-meta">
+          <span>${esc(l.tone||'')} · ${l.estimated_minutes||'?'} min · ${date}</span>
+          <button class="lc-del" onclick="delLesson(event,'${l.id}')">✕</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function loadCard(id) {
+  const l = allLessons.find(x => String(x.id) === String(id));
+  if (!l) return;
+  window._parsed = {
+    title:            l.title,
+    subtitle:         l.subtitle,
+    scriptureRef:     l.scripture_ref,
+    scriptureBook:    l.scripture_book,
+    keyVerse:         l.key_verse,
+    keyVerseRef:      l.key_verse_ref,
+    summary:          l.summary,
+    themes:           l.themes,
+    topics:           l.topics,
+    audience:         l.audience,
+    tone:             l.tone,
+    reflectionCount:  l.reflection_count,
+    hasApplication:   l.has_application,
+    hasPrayer:        l.has_prayer,
+    estimatedMinutes: l.estimated_minutes,
+    leadingNotes:     l.leading_notes,
+  };
+  renderResult(window._parsed);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  showToast('Lesson loaded');
+}
+
+async function delLesson(e, id) {
+  e.stopPropagation();
+  if (!confirm('Delete this lesson?')) return;
+  if (sb) {
+    if (!currentUser) { showToast('Sign in required', true); return; }
+    const { error } = await sb.from('devotional_lessons').delete().eq('id', id).eq('user_id', currentUser.id);
+    if (error) { showToast('Delete failed', true); return; }
+  } else {
+    const lib = JSON.parse(localStorage.getItem('devot_local') || '[]').filter(x => String(x.id) !== String(id));
+    localStorage.setItem('devot_local', JSON.stringify(lib));
+    allLessons = lib;
+  }
+  showToast('Lesson removed');
+  loadLibrary();
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   UTILS
+   ════════════════════════════════════════════════════════════════════════════ */
+function showToast(msg, isErr = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (isErr ? ' err' : '');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* ── Init ─────────────────────────────────────────────────────────────────── */
+(function init() {
+  const envCfg = getEnvCfg();
+  if (envCfg.url && envCfg.key) {
+    connect(envCfg);
+    return;
+  }
+
+  const cfg = loadCfg();
+  if (cfg.url) document.getElementById('cfgUrl').value = cfg.url;
+  if (cfg.key) document.getElementById('cfgKey').value = cfg.key;
+  if (cfg.url && cfg.key) connect();
+  else loadLibrary(); // load from localStorage if no Supabase
+})();
+</script>
+</body>
+</html>
