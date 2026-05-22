@@ -213,6 +213,179 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
 /* ── Fade in ──────────────────────────────────────────────────────────────── */
 @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 .fade-in { animation: fadeUp .3s ease both; }
+
+/* ══ Detail View ════════════════════════════════════════════════════════════ */
+.dv-overlay {
+  position: fixed; inset: 0; z-index: 100; overflow-y: auto;
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse 60% 40% at 15% 5%,  rgba(176,125,42,0.07) 0%, transparent 100%),
+    radial-gradient(ellipse 50% 40% at 85% 95%, rgba(78,99,71,0.07)   0%, transparent 100%);
+}
+.dv-inner { max-width: 780px; margin: 0 auto; padding: 28px 22px 80px; }
+.dv-topbar {
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 10px;
+  margin-bottom: 32px; padding-bottom: 16px; border-bottom: 1px solid var(--divider);
+}
+.dv-back {
+  background: none; border: 1px solid var(--border); color: var(--ink2);
+  font-family: 'Karla', sans-serif; font-size: 12px; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase; padding: 7px 14px;
+  border-radius: var(--r); cursor: pointer; transition: all .15s;
+}
+.dv-back:hover { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.dv-lead-btn {
+  background: var(--gold); color: #fff; border: none; padding: 9px 22px;
+  font-family: 'Karla', sans-serif; font-size: 12px; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase; border-radius: var(--r);
+  cursor: pointer; transition: background .15s;
+}
+.dv-lead-btn:hover { background: #8c6118; }
+.dv-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(26px,5vw,44px); font-weight: 300; line-height: 1.15;
+  color: var(--ink); margin-bottom: 8px;
+}
+.dv-ref { font-size: 11px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--gold); margin-bottom: 24px; }
+.dv-verse-block {
+  background: rgba(176,125,42,0.07); border-left: 4px solid var(--gold);
+  padding: 16px 20px; border-radius: 0 var(--r) var(--r) 0; margin-bottom: 28px;
+}
+.dv-verse-text { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-style: italic; font-weight: 300; color: var(--ink); line-height: 1.65; margin-bottom: 6px; }
+.dv-verse-ref  { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); }
+.dv-section { margin-bottom: 30px; }
+.dv-section-label {
+  font-size: 9.5px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.dv-section-label::after { content: ''; flex: 1; height: 1px; background: var(--divider); }
+.dv-body-text { font-size: 14.5px; font-weight: 300; line-height: 1.85; color: var(--ink2); }
+.dv-body-text p { margin-bottom: 14px; }
+.dv-body-text p:last-child { margin-bottom: 0; }
+.dv-question {
+  display: flex; gap: 12px; margin-bottom: 10px;
+  padding: 11px 14px; background: rgba(242,236,224,.5);
+  border: 1px solid var(--border); border-radius: var(--r);
+}
+.dv-q-num  { font-family: 'Cormorant Garamond', serif; font-size: 18px; color: var(--gold); font-weight: 400; line-height: 1.5; min-width: 18px; }
+.dv-q-text { font-size: 14px; font-weight: 300; line-height: 1.75; color: var(--ink); }
+.dv-prayer-block {
+  background: rgba(78,99,71,0.07); border-left: 3px solid var(--sage);
+  padding: 16px 18px; border-radius: 0 var(--r) var(--r) 0;
+  font-family: 'Cormorant Garamond', serif; font-size: 17px; font-style: italic;
+  font-weight: 300; line-height: 1.8; color: var(--ink); white-space: pre-wrap;
+}
+.dv-tags-wrap { display: flex; flex-wrap: wrap; gap: 5px; }
+.dv-meta-row  { display: flex; gap: 8px; flex-wrap: wrap; }
+.dv-meta-pill {
+  background: rgba(242,236,224,.7); border: 1px solid var(--border);
+  border-radius: 20px; padding: 3px 11px; font-size: 11px; color: var(--ink3);
+}
+.dv-leader-block { background: rgba(78,99,71,0.08); border-left: 3px solid var(--sage); padding: 12px 15px; border-radius: 0 var(--r) var(--r) 0; }
+
+/* ══ Leader Mode ════════════════════════════════════════════════════════════ */
+.lm-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: #141210; color: #e8dfc8;
+  font-family: 'Karla', sans-serif;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.lm-topbar {
+  flex-shrink: 0; display: flex; align-items: center; gap: 12px;
+  padding: 10px 18px; flex-wrap: wrap;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  background: rgba(0,0,0,.3);
+}
+.lm-progress-wrap { flex: 1; min-width: 80px; height: 3px; background: rgba(255,255,255,.12); border-radius: 2px; overflow: hidden; }
+.lm-progress-bar  { height: 100%; background: var(--gold); transition: width .3s ease; }
+.lm-step-counter  { font-size: 11px; color: rgba(232,223,200,.45); letter-spacing: .1em; white-space: nowrap; }
+.lm-timer         { font-size: 14px; font-weight: 500; color: rgba(232,223,200,.75); letter-spacing: .08em; min-width: 40px; text-align: right; }
+.lm-controls      { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.lm-ctrl-btn {
+  background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14);
+  color: rgba(232,223,200,.75); border-radius: var(--r);
+  font-size: 13px; padding: 5px 10px; cursor: pointer;
+  transition: all .15s; font-family: 'Karla', sans-serif; white-space: nowrap;
+}
+.lm-ctrl-btn:hover { background: rgba(255,255,255,.15); color: #e8dfc8; }
+.lm-exit { border-color: rgba(140,59,40,.4); color: rgba(200,120,100,.8); }
+.lm-exit:hover { background: rgba(140,59,40,.2); color: #e8a090; }
+.lm-font-sel {
+  background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14);
+  color: rgba(232,223,200,.75); border-radius: var(--r);
+  font-size: 11px; padding: 5px 8px; cursor: pointer; font-family: 'Karla', sans-serif;
+}
+.lm-stage {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 32px; overflow-y: auto;
+}
+.lm-card { max-width: 720px; width: 100%; text-align: center; animation: lmIn .32s ease both; }
+.lm-card.lm-left { text-align: left; }
+@keyframes lmIn { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+
+/* font-size tiers */
+.lm-overlay.fs-sm { --lm-body:16px; --lm-big:clamp(20px,3vw,30px);   --lm-huge:clamp(22px,3.5vw,34px); }
+.lm-overlay.fs-md { --lm-body:19px; --lm-big:clamp(24px,4vw,38px);   --lm-huge:clamp(28px,5vw,46px);   }
+.lm-overlay.fs-lg { --lm-body:22px; --lm-big:clamp(28px,5vw,48px);   --lm-huge:clamp(34px,6vw,56px);   }
+
+.lm-eyebrow   { font-size:11px; font-weight:600; letter-spacing:.22em; text-transform:uppercase; color:var(--gold); margin-bottom:16px; opacity:.8; }
+.lm-big-title { font-family:'Cormorant Garamond',serif; font-size:var(--lm-huge,clamp(28px,5vw,46px)); font-weight:300; line-height:1.15; color:#e8dfc8; margin-bottom:14px; }
+.lm-ref       { font-size:12px; font-weight:600; letter-spacing:.15em; text-transform:uppercase; color:var(--gold); margin-top:10px; }
+.lm-sub       { font-size:14px; color:rgba(232,223,200,.5); letter-spacing:.06em; }
+.lm-verse-q   { font-family:'Cormorant Garamond',serif; font-size:var(--lm-big,clamp(24px,4vw,40px)); font-style:italic; font-weight:300; line-height:1.6; color:#e8dfc8; margin-bottom:16px; }
+.lm-verse-ref { font-size:12px; font-weight:600; letter-spacing:.15em; text-transform:uppercase; color:var(--gold); }
+.lm-body-para { font-family:'Cormorant Garamond',serif; font-size:var(--lm-big,clamp(22px,3.5vw,36px)); font-weight:300; line-height:1.7; color:#e8dfc8; }
+.lm-q-num     { font-family:'Cormorant Garamond',serif; font-size:clamp(48px,8vw,72px); font-weight:300; color:var(--gold); line-height:1; margin-bottom:14px; opacity:.55; }
+.lm-q-text    { font-family:'Cormorant Garamond',serif; font-size:var(--lm-big,clamp(24px,4vw,40px)); font-weight:300; line-height:1.55; color:#e8dfc8; }
+.lm-section-label { font-size:11px; font-weight:600; letter-spacing:.22em; text-transform:uppercase; color:var(--sage); margin-bottom:14px; }
+.lm-section-text  { font-family:'Cormorant Garamond',serif; font-size:var(--lm-big,clamp(22px,3.5vw,36px)); font-weight:300; font-style:italic; line-height:1.7; color:#e8dfc8; }
+.lm-close-orn  { font-size:26px; color:var(--gold); opacity:.45; margin-bottom:18px; letter-spacing:10px; }
+.lm-close-head { font-family:'Cormorant Garamond',serif; font-size:clamp(20px,3.5vw,32px); font-weight:300; color:rgba(232,223,200,.75); margin-bottom:20px; }
+.lm-close-tags { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-bottom:22px; }
+.lm-close-tag  { padding:5px 14px; border:1px solid rgba(176,125,42,.4); background:rgba(176,125,42,.12); border-radius:2px; font-size:12px; color:rgba(232,223,200,.7); letter-spacing:.05em; }
+.lm-hor        { width:40px; height:1px; background:var(--gold); opacity:.35; margin:0 auto 18px; }
+
+.lm-nav {
+  flex-shrink: 0; display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 28px; border-top: 1px solid rgba(255,255,255,.07);
+  background: rgba(0,0,0,.2);
+}
+.lm-nav-btn {
+  background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14);
+  color: rgba(232,223,200,.8); border-radius: var(--r);
+  font-family: 'Karla', sans-serif; font-size: 12px; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase; padding: 10px 22px;
+  cursor: pointer; transition: all .15s;
+}
+.lm-nav-btn:hover:not(:disabled) { background: rgba(255,255,255,.15); color: #e8dfc8; }
+.lm-nav-btn:disabled { opacity: .22; cursor: not-allowed; }
+.lm-skip-btn {
+  background: transparent; border: 1px solid rgba(176,125,42,.3);
+  color: rgba(176,125,42,.7); border-radius: var(--r);
+  font-family: 'Karla', sans-serif; font-size: 11px; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase; padding: 8px 16px; cursor: pointer; transition: all .15s;
+}
+.lm-skip-btn:hover { background: rgba(176,125,42,.12); color: var(--gold); }
+
+.lm-notes-panel {
+  position: absolute; right: 0; top: 0; bottom: 0; width: 280px;
+  background: rgba(10,9,8,.94); border-left: 1px solid rgba(255,255,255,.1);
+  flex-direction: column; z-index: 10; backdrop-filter: blur(8px);
+}
+.lm-notes-hd {
+  padding: 12px 16px; font-size: 10px; font-weight: 600; letter-spacing: .18em;
+  text-transform: uppercase; color: rgba(232,223,200,.35);
+  border-bottom: 1px solid rgba(255,255,255,.07); flex-shrink: 0;
+}
+.lm-notes-ta {
+  flex: 1; background: transparent; border: none; resize: none; outline: none;
+  font-family: 'Karla', sans-serif; font-size: 13.5px; font-weight: 300;
+  line-height: 1.75; color: rgba(232,223,200,.85); padding: 14px 16px;
+  caret-color: var(--gold);
+}
+.lm-notes-ta::placeholder { color: rgba(232,223,200,.18); font-style: italic; }
 </style>
 </head>
 <body>
@@ -288,6 +461,49 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
 
 </div>
 <div class="toast" id="toast"></div>
+
+<!-- ══ Detail View ══════════════════════════════════════════════════════════ -->
+<div id="detailView" class="dv-overlay" style="display:none">
+  <div class="dv-inner">
+    <div class="dv-topbar">
+      <button class="dv-back" onclick="closeDetailView()">← Back to Library</button>
+      <button class="dv-lead-btn" onclick="enterLeaderMode()">▶ Lead This Lesson</button>
+    </div>
+    <div id="dvBody"></div>
+  </div>
+</div>
+
+<!-- ══ Leader Mode ══════════════════════════════════════════════════════════ -->
+<div id="leaderMode" class="lm-overlay fs-md" style="display:none">
+  <div class="lm-topbar">
+    <div class="lm-progress-wrap">
+      <div class="lm-progress-bar" id="lmProgress" style="width:0%"></div>
+    </div>
+    <div class="lm-step-counter" id="lmStepCounter">Step 1 of 1</div>
+    <div class="lm-timer" id="lmTimer">0:00</div>
+    <div class="lm-controls">
+      <button class="lm-ctrl-btn" id="lmTimerBtn" onclick="toggleTimer()" title="Pause / Resume">⏸</button>
+      <button class="lm-ctrl-btn" onclick="resetTimer()" title="Reset timer">↺</button>
+      <button class="lm-ctrl-btn" onclick="toggleNotes()" title="Session notes">✏</button>
+      <select class="lm-font-sel" onchange="setLeaderFont(this.value)" title="Font size">
+        <option value="sm">Small</option>
+        <option value="md" selected>Medium</option>
+        <option value="lg">Large</option>
+      </select>
+      <button class="lm-ctrl-btn lm-exit" onclick="exitLeaderMode()">✕ Exit</button>
+    </div>
+  </div>
+  <div class="lm-stage" id="lmStage"></div>
+  <div class="lm-nav">
+    <button class="lm-nav-btn" id="lmPrev" onclick="leaderPrev()" disabled>← Prev</button>
+    <button class="lm-skip-btn" id="lmSkip" onclick="leaderSkip()" style="display:none">Skip Question</button>
+    <button class="lm-nav-btn" id="lmNext" onclick="leaderNext()">Next →</button>
+  </div>
+  <div class="lm-notes-panel" id="lmNotesPanel" style="display:none">
+    <div class="lm-notes-hd">Session Notes</div>
+    <textarea class="lm-notes-ta" id="lmNotesTa" placeholder="Type notes here…" oninput="saveLeaderNotes()"></textarea>
+  </div>
+</div>
 
 <script>
 /* ════════════════════════════════════════════════════════════════════════════
@@ -893,7 +1109,7 @@ function renderLib(lessons) {
     const tags = (l.themes||[]).slice(0,3).map(t => `<span class="tag theme" style="font-size:10px;padding:2px 6px">${esc(t)}</span>`).join('');
     const date = new Date(l.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
     return `
-      <div class="lib-card" onclick="loadCard('${l.id}')">
+      <div class="lib-card" onclick="openDetailView('${l.id}')">
         <div class="lc-ref">${esc(l.scripture_ref||'')}</div>
         <div class="lc-title">${esc(l.title||'Untitled')}</div>
         <div class="lc-tags">${tags}</div>
@@ -906,29 +1122,7 @@ function renderLib(lessons) {
 }
 
 function loadCard(id) {
-  const l = allLessons.find(x => String(x.id) === String(id));
-  if (!l) return;
-  window._parsed = {
-    title:            l.title,
-    subtitle:         l.subtitle,
-    scriptureRef:     l.scripture_ref,
-    scriptureBook:    l.scripture_book,
-    keyVerse:         l.key_verse,
-    keyVerseRef:      l.key_verse_ref,
-    summary:          l.summary,
-    themes:           l.themes,
-    topics:           l.topics,
-    audience:         l.audience,
-    tone:             l.tone,
-    reflectionCount:  l.reflection_count,
-    hasApplication:   l.has_application,
-    hasPrayer:        l.has_prayer,
-    estimatedMinutes: l.estimated_minutes,
-    leadingNotes:     l.leading_notes,
-  };
-  renderResult(window._parsed);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-  showToast('Lesson loaded');
+  openDetailView(id);
 }
 
 async function delLesson(e, id) {
@@ -956,6 +1150,292 @@ function showToast(msg, isErr = false) {
   t.className = 'toast' + (isErr ? ' err' : '');
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PARSE RAW SECTIONS
+   ════════════════════════════════════════════════════════════════════════════ */
+function parseRawSections(rawText) {
+  const r = { devotionalThought: '', paragraphs: [], questions: [], application: '', prayer: '' };
+  if (!rawText) return r;
+
+  const devot = rawText.match(/Devotional\s+Thought[:\s]*\n([\s\S]*?)(?=\n[ \t]*(?:Reflection\s+Questions?|Application)\b)/i);
+  r.devotionalThought = devot ? devot[1].trim() : '';
+  r.paragraphs = r.devotionalThought
+    ? r.devotionalThought.split(/\n[ \t]*\n/).map(p => p.trim()).filter(Boolean)
+    : [];
+
+  const qMatches = rawText.match(/^[ \t]*\d+\.\s*.+/gm) || [];
+  r.questions = qMatches.map(q => q.replace(/^[ \t]*\d+\.\s*/, '').trim());
+
+  const app = rawText.match(/\bApplication\b[:\s]*\n([\s\S]*?)(?=\n[ \t]*(?:Prayer|Leader\s+Notes?)\b|$)/i);
+  r.application = app ? app[1].trim() : '';
+
+  const pray = rawText.match(/\bPrayer\b[:\s]*\n([\s\S]*?)(?=\n[ \t]*Leader\s+Notes?\b|$)/i);
+  r.prayer = pray ? pray[1].trim() : '';
+
+  return r;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   DETAIL VIEW
+   ════════════════════════════════════════════════════════════════════════════ */
+let _currentLesson = null;
+
+function openDetailView(id) {
+  const l = allLessons.find(x => String(x.id) === String(id));
+  if (!l) return;
+  _currentLesson = l;
+
+  const sec       = parseRawSections(l.raw_text || '');
+  const themeTags = (l.themes   || []).map(t => `<span class="tag theme">${esc(t)}</span>`).join('');
+  const topicTags = (l.topics   || []).map(t => `<span class="tag topic">${esc(t)}</span>`).join('');
+  const audTags   = (l.audience || []).map(a => `<span class="tag aud">${esc(a)}</span>`).join('');
+  const bookTag   = l.scripture_book ? `<span class="tag book">${esc(l.scripture_book)}</span>` : '';
+
+  const devotParas = sec.paragraphs.length ? sec.paragraphs : (l.summary ? [l.summary] : []);
+  const devotHTML  = devotParas.length
+    ? devotParas.map(p => `<p>${esc(p)}</p>`).join('')
+    : `<p style="opacity:.4;font-style:italic">No devotional text extracted — requires full raw text.</p>`;
+
+  const qHTML = sec.questions.length
+    ? sec.questions.map((q, i) => `
+        <div class="dv-question">
+          <div class="dv-q-num">${i + 1}</div>
+          <div class="dv-q-text">${esc(q)}</div>
+        </div>`).join('')
+    : `<p style="opacity:.4;font-style:italic">No questions extracted.</p>`;
+
+  const appHTML = sec.application
+    ? sec.application.split(/\n\s*\n/).map(p => `<p>${esc(p)}</p>`).join('')
+    : `<p style="opacity:.4;font-style:italic">No application section detected.</p>`;
+
+  document.getElementById('dvBody').innerHTML = `
+    <div class="dv-title">${esc(l.title || 'Untitled')}</div>
+    ${l.scripture_ref ? `<div class="dv-ref">${esc(l.scripture_ref)}</div>` : ''}
+
+    ${l.key_verse ? `<div class="dv-verse-block">
+      <div class="dv-verse-text">"${esc(l.key_verse)}"</div>
+      <div class="dv-verse-ref">— ${esc(l.key_verse_ref || l.scripture_ref || '')}</div>
+    </div>` : ''}
+
+    <div class="dv-section">
+      <div class="dv-section-label">Themes &amp; Tags</div>
+      <div class="dv-tags-wrap">${bookTag}${themeTags}${topicTags}${audTags}</div>
+    </div>
+
+    <div class="dv-section">
+      <div class="dv-section-label">Devotional Thought</div>
+      <div class="dv-body-text">${devotHTML}</div>
+    </div>
+
+    <div class="dv-section">
+      <div class="dv-section-label">Reflection Questions</div>
+      <div class="dv-questions">${qHTML}</div>
+    </div>
+
+    <div class="dv-section">
+      <div class="dv-section-label">Application</div>
+      <div class="dv-body-text">${appHTML}</div>
+    </div>
+
+    ${sec.prayer ? `<div class="dv-section">
+      <div class="dv-section-label">Prayer</div>
+      <div class="dv-prayer-block">${esc(sec.prayer)}</div>
+    </div>` : ''}
+
+    ${l.leading_notes ? `<div class="dv-section">
+      <div class="dv-section-label">Leader Notes</div>
+      <div class="dv-leader-block">
+        <div style="font-size:13px;font-weight:300;line-height:1.65;color:var(--ink2)">${esc(l.leading_notes)}</div>
+      </div>
+    </div>` : ''}
+
+    <div class="dv-section">
+      <div class="dv-meta-row">
+        <span class="dv-meta-pill">⏱ ${l.estimated_minutes || '?'} min</span>
+        <span class="dv-meta-pill">${l.reflection_count || 0} questions</span>
+        ${l.tone ? `<span class="dv-meta-pill">${esc(l.tone)}</span>` : ''}
+        ${l.has_application ? `<span class="dv-meta-pill">✓ Application</span>` : ''}
+        ${l.has_prayer      ? `<span class="dv-meta-pill">✓ Prayer</span>`      : ''}
+      </div>
+    </div>`;
+
+  const dv = document.getElementById('detailView');
+  dv.style.display = 'block';
+  dv.scrollTop = 0;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetailView() {
+  document.getElementById('detailView').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   LEADER MODE
+   ════════════════════════════════════════════════════════════════════════════ */
+let _lmSteps    = [];
+let _lmIndex    = 0;
+let _lmTimer    = null;
+let _lmSecs     = 0;
+let _lmRunning  = false;
+let _lmLessonId = null;
+
+function buildLeaderSteps(lesson, sec) {
+  const steps = [];
+  steps.push({ type: 'intro', title: lesson.title, ref: lesson.scripture_ref, minutes: lesson.estimated_minutes });
+  if (lesson.key_verse) {
+    steps.push({ type: 'verse', text: lesson.key_verse, ref: lesson.key_verse_ref || lesson.scripture_ref });
+  }
+  const paras = sec.paragraphs.length ? sec.paragraphs : (lesson.summary ? [lesson.summary] : []);
+  paras.forEach((p, i) => steps.push({ type: 'devotional', text: p, index: i, total: paras.length }));
+  sec.questions.forEach((q, i) => steps.push({ type: 'question', text: q, number: i + 1, total: sec.questions.length }));
+  if (sec.application) steps.push({ type: 'application', text: sec.application });
+  if (sec.prayer)      steps.push({ type: 'prayer',      text: sec.prayer      });
+  steps.push({ type: 'close', themes: lesson.themes || [], title: lesson.title });
+  return steps;
+}
+
+function escNl(str) { return esc(str).replace(/\n/g, '<br>'); }
+
+function renderLeaderStep() {
+  const step  = _lmSteps[_lmIndex];
+  const total = _lmSteps.length;
+  document.getElementById('lmProgress').style.width    = ((_lmIndex + 1) / total * 100).toFixed(1) + '%';
+  document.getElementById('lmStepCounter').textContent = `Step ${_lmIndex + 1} of ${total}`;
+  document.getElementById('lmPrev').disabled           = _lmIndex === 0;
+  document.getElementById('lmNext').textContent        = _lmIndex === total - 1 ? 'Finish ✦' : 'Next →';
+  document.getElementById('lmSkip').style.display      = step.type === 'question' ? 'inline-block' : 'none';
+
+  let html = '';
+  if (step.type === 'intro') {
+    html = `<div class="lm-card">
+      <div class="lm-eyebrow">Lesson</div>
+      <div class="lm-big-title">${esc(step.title)}</div>
+      ${step.ref ? `<div class="lm-ref">${esc(step.ref)}</div>` : ''}
+      ${step.minutes ? `<div class="lm-sub" style="margin-top:20px">Estimated time: ${step.minutes} min</div>` : ''}
+    </div>`;
+  } else if (step.type === 'verse') {
+    html = `<div class="lm-card">
+      <div class="lm-eyebrow">Key Verse</div>
+      <div class="lm-verse-q">"${esc(step.text)}"</div>
+      ${step.ref ? `<div class="lm-verse-ref">— ${esc(step.ref)}</div>` : ''}
+    </div>`;
+  } else if (step.type === 'devotional') {
+    html = `<div class="lm-card lm-left">
+      <div class="lm-eyebrow">Devotional Thought${step.total > 1 ? ` · ${step.index + 1} / ${step.total}` : ''}</div>
+      <div class="lm-body-para">${escNl(step.text)}</div>
+    </div>`;
+  } else if (step.type === 'question') {
+    html = `<div class="lm-card">
+      <div class="lm-eyebrow">Question ${step.number} of ${step.total}</div>
+      <div class="lm-q-num">${step.number}</div>
+      <div class="lm-q-text">${esc(step.text)}</div>
+    </div>`;
+  } else if (step.type === 'application') {
+    html = `<div class="lm-card lm-left">
+      <div class="lm-section-label">Application</div>
+      <div class="lm-section-text">${escNl(step.text)}</div>
+    </div>`;
+  } else if (step.type === 'prayer') {
+    html = `<div class="lm-card lm-left">
+      <div class="lm-section-label">Prayer</div>
+      <div class="lm-section-text">${escNl(step.text)}</div>
+    </div>`;
+  } else if (step.type === 'close') {
+    const tags = (step.themes || []).map(t => `<span class="lm-close-tag">${esc(t)}</span>`).join('');
+    html = `<div class="lm-card">
+      <div class="lm-close-orn">✦ ✦ ✦</div>
+      <div class="lm-close-head">Session Complete</div>
+      <div class="lm-hor"></div>
+      <div class="lm-close-tags">${tags}</div>
+      <div class="lm-sub">Thank you for leading this lesson</div>
+    </div>`;
+  }
+  document.getElementById('lmStage').innerHTML = html;
+}
+
+function enterLeaderMode() {
+  if (!_currentLesson) return;
+  const sec   = parseRawSections(_currentLesson.raw_text || '');
+  _lmSteps    = buildLeaderSteps(_currentLesson, sec);
+  _lmIndex    = 0;
+  _lmLessonId = _currentLesson.id;
+
+  _lmSecs    = 0;
+  _lmRunning = true;
+  clearInterval(_lmTimer);
+  updateTimerDisplay();
+  _lmTimer = setInterval(() => { if (_lmRunning) { _lmSecs++; updateTimerDisplay(); } }, 1000);
+
+  document.getElementById('lmNotesTa').value        = localStorage.getItem('devot_notes_' + _lmLessonId) || '';
+  document.getElementById('lmNotesPanel').style.display = 'none';
+  document.getElementById('lmTimerBtn').textContent  = '⏸';
+
+  const lm = document.getElementById('leaderMode');
+  lm.className    = 'lm-overlay fs-md';
+  lm.style.display = 'flex';
+  document.querySelector('.lm-font-sel').value = 'md';
+
+  renderLeaderStep();
+  document.addEventListener('keydown', leaderKeyHandler);
+}
+
+function exitLeaderMode() {
+  document.getElementById('leaderMode').style.display = 'none';
+  clearInterval(_lmTimer);
+  _lmTimer   = null;
+  _lmRunning = false;
+  document.removeEventListener('keydown', leaderKeyHandler);
+}
+
+function leaderKeyHandler(e) {
+  if (e.key === 'Escape')                               { exitLeaderMode(); return; }
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown')  leaderNext();
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')    leaderPrev();
+}
+
+function leaderNext() {
+  if (_lmIndex < _lmSteps.length - 1) { _lmIndex++; renderLeaderStep(); }
+  else exitLeaderMode();
+}
+
+function leaderPrev() {
+  if (_lmIndex > 0) { _lmIndex--; renderLeaderStep(); }
+}
+
+function leaderSkip() { leaderNext(); }
+
+function updateTimerDisplay() {
+  const m = Math.floor(_lmSecs / 60);
+  const s = _lmSecs % 60;
+  document.getElementById('lmTimer').textContent = `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function toggleTimer() {
+  _lmRunning = !_lmRunning;
+  document.getElementById('lmTimerBtn').textContent = _lmRunning ? '⏸' : '▶';
+}
+
+function resetTimer() {
+  _lmSecs    = 0;
+  _lmRunning = true;
+  document.getElementById('lmTimerBtn').textContent = '⏸';
+  updateTimerDisplay();
+}
+
+function toggleNotes() {
+  const p = document.getElementById('lmNotesPanel');
+  p.style.display = p.style.display === 'flex' ? 'none' : 'flex';
+}
+
+function saveLeaderNotes() {
+  if (_lmLessonId) localStorage.setItem('devot_notes_' + _lmLessonId, document.getElementById('lmNotesTa').value);
+}
+
+function setLeaderFont(size) {
+  document.getElementById('leaderMode').className = 'lm-overlay fs-' + size;
 }
 
 /* ── Init ─────────────────────────────────────────────────────────────────── */
