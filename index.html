@@ -641,6 +641,20 @@ function getEnvCfg() {
   };
 }
 
+async function fetchNetlifyCfg() {
+  try {
+    const res = await fetch('/.netlify/functions/config', { cache: 'no-store' });
+    if (!res.ok) return { url: '', key: '' };
+    const cfg = await res.json();
+    return {
+      url: (cfg.url || '').trim(),
+      key: (cfg.anonKey || cfg.key || '').trim(),
+    };
+  } catch {
+    return { url: '', key: '' };
+  }
+}
+
 function getAuthValues() {
   return {
     email: document.getElementById('authEmail').value.trim(),
@@ -942,20 +956,30 @@ function showToast(msg, isErr = false) {
 }
 
 /* ── Init ─────────────────────────────────────────────────────────────────── */
-(function init() {
+async function bootstrap() {
+  const remoteCfg = await fetchNetlifyCfg();
+  if (remoteCfg.url && remoteCfg.key) {
+    await connect(remoteCfg);
+    return;
+  }
+
   const envCfg = getEnvCfg();
   if (envCfg.url && envCfg.key) {
-    connect(envCfg);
+    await connect(envCfg);
     return;
   }
 
   const cfg = loadCfg();
-  if (cfg.url && cfg.key) connect(cfg);
-  else {
-    document.getElementById('connPill').textContent = 'Local mode';
-    loadLibrary(); // load from localStorage if no Supabase
+  if (cfg.url && cfg.key) {
+    await connect(cfg);
+    return;
   }
-})();
+
+  document.getElementById('connPill').textContent = 'Local mode';
+  loadLibrary(); // load from localStorage if no Supabase
+}
+
+bootstrap();
 </script>
 </body>
 </html>
