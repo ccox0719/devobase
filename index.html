@@ -217,16 +217,7 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
 
   <!-- Settings -->
   <div class="settings-bar" id="settingsBar">
-    <div class="s-field">
-      <div class="s-label">Supabase URL</div>
-      <input class="s-input" id="cfgUrl" type="text" placeholder="https://xxxx.supabase.co" />
-    </div>
-    <div class="s-field">
-      <div class="s-label">Supabase Anon Key</div>
-      <input class="s-input" id="cfgKey" type="password" placeholder="eyJ…" />
-    </div>
-    <button class="s-btn" onclick="connect()">Connect</button>
-    <div class="s-pill" id="connPill">✦ Connected</div>
+    <div class="s-pill" id="connPill">Loading Supabase config…</div>
   </div>
 
   <div class="settings-bar" id="authBar">
@@ -712,9 +703,14 @@ async function attachAuthState() {
 
 async function connect(cfgOverride) {
   const cfg = cfgOverride || {};
-  const url = (cfg.url || document.getElementById('cfgUrl').value).trim();
-  const key = (cfg.key || document.getElementById('cfgKey').value).trim();
-  if (!url || !key) { showToast('Enter Supabase URL and Anon Key', true); return; }
+  const url = (cfg.url || document.getElementById('cfgUrl')?.value || '').trim();
+  const key = (cfg.key || document.getElementById('cfgKey')?.value || '').trim();
+  if (!url || !key) {
+    document.getElementById('connPill').textContent = 'No Supabase config found';
+    showToast('Using local mode', true);
+    sb = null;
+    return;
+  }
 
   sb = window.supabase.createClient(url, key, {
     auth: {
@@ -725,8 +721,10 @@ async function connect(cfgOverride) {
   });
 
   if (!cfgOverride) localStorage.setItem(CFG_KEY, JSON.stringify({ url, key }));
-  document.getElementById('cfgUrl').value = url;
-  document.getElementById('cfgKey').value = key;
+  const urlEl = document.getElementById('cfgUrl');
+  const keyEl = document.getElementById('cfgKey');
+  if (urlEl) urlEl.value = url;
+  if (keyEl) keyEl.value = key;
   document.getElementById('settingsBar').classList.add('ok');
   document.getElementById('connPill').textContent = 'Supabase ready';
   showToast('Supabase ready');
@@ -952,10 +950,11 @@ function showToast(msg, isErr = false) {
   }
 
   const cfg = loadCfg();
-  if (cfg.url) document.getElementById('cfgUrl').value = cfg.url;
-  if (cfg.key) document.getElementById('cfgKey').value = cfg.key;
-  if (cfg.url && cfg.key) connect();
-  else loadLibrary(); // load from localStorage if no Supabase
+  if (cfg.url && cfg.key) connect(cfg);
+  else {
+    document.getElementById('connPill').textContent = 'Local mode';
+    loadLibrary(); // load from localStorage if no Supabase
+  }
 })();
 </script>
 </body>
