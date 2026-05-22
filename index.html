@@ -298,6 +298,49 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
 .dv-sp:last-of-type { margin-bottom: 0; }
 .dv-sv { margin-right: 3px; }
 .dv-bsb-credit { margin-top: 12px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink3); opacity: .5; }
+.dv-edit-btn {
+  background: none; border: 1px solid var(--border); color: var(--ink2);
+  font-family: 'Karla', sans-serif; font-size: 12px; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase; padding: 7px 14px;
+  border-radius: var(--r); cursor: pointer; transition: all .15s;
+}
+.dv-edit-btn:hover { border-color: var(--gold); color: var(--gold); }
+.dv-edit-form  { display: flex; flex-direction: column; gap: 20px; }
+.dv-edit-row   { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 540px) { .dv-edit-row { grid-template-columns: 1fr; } }
+.dv-edit-field { display: flex; flex-direction: column; gap: 6px; }
+.dv-edit-label { font-size: 9.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--gold); }
+.dv-edit-input {
+  border: 1px solid var(--border); background: var(--surface); border-radius: var(--r);
+  padding: 9px 12px; font-family: 'Karla', sans-serif; font-size: 14px; font-weight: 300;
+  color: var(--ink); outline: none; transition: border-color .18s, box-shadow .18s; width: 100%;
+}
+.dv-edit-input:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(176,125,42,0.10); }
+.dv-edit-ta {
+  border: 1px solid var(--border); background: var(--surface); border-radius: var(--r);
+  padding: 9px 12px; font-family: 'Karla', sans-serif; font-size: 14px; font-weight: 300;
+  color: var(--ink); outline: none; resize: vertical; min-height: 80px; line-height: 1.75;
+  transition: border-color .18s, box-shadow .18s; width: 100%;
+}
+.dv-edit-ta:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(176,125,42,0.10); }
+.dv-edit-tags { display: flex; flex-wrap: wrap; gap: 5px; padding: 6px 0; min-height: 32px; }
+.dv-edit-actions {
+  display: flex; gap: 10px; padding-top: 12px; border-top: 1px solid var(--divider); flex-wrap: wrap;
+}
+.dv-save-btn {
+  flex: 1; padding: 10px 18px; background: var(--gold); color: #fff; border: none;
+  border-radius: var(--r); font-family: 'Karla', sans-serif; font-size: 12px; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: background .15s;
+}
+.dv-save-btn:hover { background: #8c6118; }
+.dv-save-btn:disabled { background: var(--border); cursor: not-allowed; }
+.dv-cancel-btn {
+  padding: 10px 18px; background: transparent; color: var(--ink2);
+  border: 1px solid var(--border); border-radius: var(--r); font-family: 'Karla', sans-serif;
+  font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+  cursor: pointer; transition: all .15s;
+}
+.dv-cancel-btn:hover { border-color: var(--ink); color: var(--ink); }
 
 /* ══ Leader Mode ════════════════════════════════════════════════════════════ */
 .lm-overlay {
@@ -481,7 +524,10 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
   <div class="dv-inner">
     <div class="dv-topbar">
       <button class="dv-back" onclick="closeDetailView()">← Back to Library</button>
-      <button class="dv-lead-btn" onclick="enterLeaderMode()">▶ Lead This Lesson</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="dv-edit-btn" id="dvEditBtn" onclick="enterEditMode()">✎ Edit</button>
+        <button class="dv-lead-btn" id="dvLeadBtn" onclick="enterLeaderMode()">▶ Lead This Lesson</button>
+      </div>
     </div>
     <div id="dvBody"></div>
   </div>
@@ -1417,6 +1463,12 @@ function openDetailView(id) {
       </div>
     </div>`;
 
+  // Restore topbar buttons in case we're returning from edit mode
+  const eb = document.getElementById('dvEditBtn');
+  const lb = document.getElementById('dvLeadBtn');
+  if (eb) eb.style.display = '';
+  if (lb) lb.style.display = '';
+
   const dv = document.getElementById('detailView');
   dv.style.display = 'block';
   dv.scrollTop = 0;
@@ -1437,6 +1489,180 @@ function openDetailView(id) {
 function closeDetailView() {
   document.getElementById('detailView').style.display = 'none';
   document.body.style.overflow = '';
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   EDIT MODE
+   ════════════════════════════════════════════════════════════════════════════ */
+let _editTags = { themes: [], topics: [], audience: [] };
+
+function enterEditMode() {
+  const l = _currentLesson;
+  if (!l) return;
+
+  _editTags = {
+    themes:   [...(l.themes   || [])],
+    topics:   [...(l.topics   || [])],
+    audience: [...(l.audience || [])],
+  };
+
+  document.getElementById('dvEditBtn').style.display = 'none';
+  document.getElementById('dvLeadBtn').style.display = 'none';
+
+  document.getElementById('dvBody').innerHTML = `
+    <div class="dv-edit-form">
+
+      <div class="dv-edit-field">
+        <div class="dv-edit-label">Title</div>
+        <input class="dv-edit-input" id="edit-title" value="${esc(l.title || '')}" />
+      </div>
+
+      <div class="dv-edit-row">
+        <div class="dv-edit-field">
+          <div class="dv-edit-label">Scripture Reference</div>
+          <input class="dv-edit-input" id="edit-ref" value="${esc(l.scripture_ref || '')}" placeholder="e.g. Luke 11:33–36" />
+        </div>
+        <div class="dv-edit-field">
+          <div class="dv-edit-label">Tone</div>
+          <input class="dv-edit-input" id="edit-tone" value="${esc(l.tone || '')}" placeholder="e.g. Reflective" />
+        </div>
+      </div>
+
+      <div class="dv-edit-field">
+        <div class="dv-edit-label">Key Verse</div>
+        <textarea class="dv-edit-ta" id="edit-kv">${esc(l.key_verse || '')}</textarea>
+      </div>
+
+      <div class="dv-edit-field">
+        <div class="dv-edit-label">Key Verse Reference</div>
+        <input class="dv-edit-input" id="edit-kvref" value="${esc(l.key_verse_ref || '')}" placeholder="e.g. Luke 11:34" />
+      </div>
+
+      <div class="dv-edit-field">
+        <div class="dv-edit-label">Themes</div>
+        <div class="dv-edit-tags" id="edit-tag-themes"></div>
+      </div>
+
+      <div class="dv-edit-field">
+        <div class="dv-edit-label">Topics</div>
+        <div class="dv-edit-tags" id="edit-tag-topics"></div>
+      </div>
+
+      <div class="dv-edit-field">
+        <div class="dv-edit-label">Audience</div>
+        <div class="dv-edit-tags" id="edit-tag-audience"></div>
+      </div>
+
+      <div class="dv-edit-row">
+        <div class="dv-edit-field">
+          <div class="dv-edit-label">Estimated Minutes</div>
+          <input class="dv-edit-input" type="number" id="edit-mins" value="${l.estimated_minutes || ''}" min="1" max="300" />
+        </div>
+        <div class="dv-edit-field">
+          <div class="dv-edit-label">Reflection Question Count</div>
+          <input class="dv-edit-input" type="number" id="edit-qcount" value="${l.reflection_count || 0}" min="0" max="99" />
+        </div>
+      </div>
+
+      <div class="dv-edit-field">
+        <div class="dv-edit-label">Leader Notes</div>
+        <textarea class="dv-edit-ta" id="edit-notes" style="min-height:100px">${esc(l.leading_notes || '')}</textarea>
+      </div>
+
+      <div class="dv-edit-actions">
+        <button class="dv-save-btn" id="dvSaveBtn" onclick="saveEditedLesson()">Save Changes</button>
+        <button class="dv-cancel-btn" onclick="cancelEditMode()">Cancel</button>
+      </div>
+
+    </div>`;
+
+  renderEditTagRow('themes',   'theme');
+  renderEditTagRow('topics',   'topic');
+  renderEditTagRow('audience', 'aud');
+}
+
+function renderEditTagRow(field, cls) {
+  const el = document.getElementById('edit-tag-' + field);
+  if (!el) return;
+  el.innerHTML = (_editTags[field] || []).map(t =>
+    `<span class="tag ${cls} remove" onclick="removeEditTag('${field}','${t.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">${esc(t)} ×</span>`
+  ).join('') + `<span class="tag add" onclick="addEditTag('${field}','${cls}')">+ add</span>`;
+}
+
+function addEditTag(field, cls) {
+  const val = prompt(`Add ${field.slice(0, -1)} tag:`);
+  if (!val?.trim()) return;
+  _editTags[field].push(val.trim());
+  renderEditTagRow(field, cls);
+}
+
+function removeEditTag(field, tag) {
+  _editTags[field] = (_editTags[field] || []).filter(t => t !== tag);
+  const cls = field === 'themes' ? 'theme' : field === 'topics' ? 'topic' : 'aud';
+  renderEditTagRow(field, cls);
+}
+
+function cancelEditMode() {
+  openDetailView(_currentLesson.id);
+}
+
+async function saveEditedLesson() {
+  const l = _currentLesson;
+  if (!l) return;
+
+  const btn = document.getElementById('dvSaveBtn');
+  if (btn) btn.disabled = true;
+
+  const newRef = document.getElementById('edit-ref').value.trim();
+  const updates = {
+    title:             document.getElementById('edit-title').value.trim() || l.title,
+    scripture_ref:     newRef || null,
+    tone:              document.getElementById('edit-tone').value.trim() || null,
+    key_verse:         document.getElementById('edit-kv').value.trim() || null,
+    key_verse_ref:     document.getElementById('edit-kvref').value.trim() || null,
+    leading_notes:     document.getElementById('edit-notes').value.trim() || null,
+    estimated_minutes: parseInt(document.getElementById('edit-mins').value) || null,
+    reflection_count:  parseInt(document.getElementById('edit-qcount').value) || 0,
+    themes:            _editTags.themes,
+    topics:            _editTags.topics,
+    audience:          _editTags.audience,
+  };
+
+  // Re-derive scripture_book from updated ref
+  if (newRef) {
+    const bm = newRef.match(new RegExp('(' + BIBLE_BOOKS.map(b => b.replace(/\s/g,'\\s')).join('|') + ')', 'i'));
+    updates.scripture_book = bm ? (BIBLE_BOOKS.find(b => b.toLowerCase() === bm[1].toLowerCase()) || bm[1]) : null;
+  } else {
+    updates.scripture_book = null;
+  }
+
+  if (sb && currentUser) {
+    const { error } = await sb.from('devotional_lessons')
+      .update(updates)
+      .eq('id', l.id)
+      .eq('user_id', currentUser.id);
+    if (error) {
+      showToast('Save failed: ' + error.message.slice(0, 50), true);
+      if (btn) btn.disabled = false;
+      return;
+    }
+  } else {
+    const lib = JSON.parse(localStorage.getItem('devot_local') || '[]');
+    const idx = lib.findIndex(x => String(x.id) === String(l.id));
+    if (idx > -1) {
+      Object.assign(lib[idx], updates);
+      localStorage.setItem('devot_local', JSON.stringify(lib));
+      allLessons = lib;
+    }
+  }
+
+  // Invalidate BSB cache for this ref in case it changed
+  if (newRef !== l.scripture_ref) _bsbCache.delete(l.scripture_ref);
+
+  Object.assign(l, updates);
+  renderLib(allLessons);
+  showToast('Lesson updated ✦');
+  openDetailView(l.id);
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
