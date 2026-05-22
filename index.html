@@ -4,10 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Devotional Library</title>
-<script>window.DEVOT_SUPABASE_CONFIG = {
-  "url": "****************.co/",
-  "anonKey": "****************HiKQ"
-};</script>
+<script>window.DEVOT_SUPABASE_CONFIG = {};</script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -163,7 +160,14 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
 .act-save:disabled { background: var(--border); border-color: var(--border); color: var(--ink3); cursor: not-allowed; }
 
 /* ── Library ──────────────────────────────────────────────────────────────── */
-.lib-section { margin-top: 48px; }
+.lib-section { margin-top: 0; }
+.new-lesson-btn {
+  background: var(--gold); color: #fff; border: none; padding: 8px 16px;
+  font-family: 'Karla', sans-serif; font-size: 11px; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase; border-radius: var(--r);
+  cursor: pointer; transition: background .15s; white-space: nowrap;
+}
+.new-lesson-btn:hover { background: #8c6118; }
 .lib-hd { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--divider); }
 .lib-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 300; color: var(--ink); display: flex; align-items: center; gap: 10px; }
 .lib-count { background: var(--ink); color: var(--bg); font-family: 'Karla', sans-serif; font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
@@ -213,6 +217,29 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
 /* ── Fade in ──────────────────────────────────────────────────────────────── */
 @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 .fade-in { animation: fadeUp .3s ease both; }
+
+/* ══ Parse Modal ════════════════════════════════════════════════════════════ */
+.parse-modal {
+  position: fixed; inset: 0; z-index: 100; overflow-y: auto;
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse 60% 40% at 15% 5%,  rgba(176,125,42,0.07) 0%, transparent 100%),
+    radial-gradient(ellipse 50% 40% at 85% 95%, rgba(78,99,71,0.07)   0%, transparent 100%);
+}
+.pm-inner { max-width: 1040px; margin: 0 auto; padding: 28px 22px 80px; }
+.pm-topbar {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1px solid var(--divider);
+  flex-wrap: wrap; gap: 10px;
+}
+.pm-title { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 300; color: var(--ink2); }
+.pm-close {
+  background: none; border: 1px solid var(--border); color: var(--ink2);
+  font-family: 'Karla', sans-serif; font-size: 12px; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase; padding: 7px 14px;
+  border-radius: var(--r); cursor: pointer; transition: all .15s;
+}
+.pm-close:hover { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 
 /* ══ Detail View ════════════════════════════════════════════════════════════ */
 .dv-overlay {
@@ -393,6 +420,9 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
 .lm-sub       { font-size:14px; color:rgba(232,223,200,.5); letter-spacing:.06em; }
 .lm-verse-q   { font-family:'Cormorant Garamond',serif; font-size:var(--lm-big,clamp(24px,4vw,40px)); font-style:italic; font-weight:300; line-height:1.6; color:#e8dfc8; margin-bottom:16px; }
 .lm-verse-ref { font-size:12px; font-weight:600; letter-spacing:.15em; text-transform:uppercase; color:var(--gold); }
+.lm-scripture-passage { font-family:'Cormorant Garamond',serif; font-size:var(--lm-big,clamp(22px,3.5vw,36px)); font-weight:300; line-height:1.65; color:#e8dfc8; margin-bottom:16px; }
+.lm-scripture-passage sup { font-family:'Karla',sans-serif; font-size:.42em; font-weight:700; color:var(--gold); margin-right:3px; vertical-align:super; }
+.lm-scripture-passage span { margin-right:8px; }
 .lm-body-para { font-family:'Cormorant Garamond',serif; font-size:var(--lm-big,clamp(22px,3.5vw,36px)); font-weight:300; line-height:1.7; color:#e8dfc8; }
 .lm-q-num     { font-family:'Cormorant Garamond',serif; font-size:clamp(48px,8vw,72px); font-weight:300; color:var(--gold); line-height:1; margin-bottom:14px; opacity:.55; }
 .lm-q-text    { font-family:'Cormorant Garamond',serif; font-size:var(--lm-big,clamp(24px,4vw,40px)); font-weight:300; line-height:1.55; color:#e8dfc8; }
@@ -467,37 +497,8 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
   <header>
     <div class="orn">✦ ✦ ✦</div>
     <h1>Devotional <em>Lesson</em> Library</h1>
-    <p class="tagline">Paste · Parse · Tag · Lead</p>
+    <p class="tagline">Tag · Lead · Teach</p>
   </header>
-
-  <!-- Main columns -->
-  <div class="cols">
-    <!-- Input -->
-    <div class="card">
-      <div class="card-hd">
-        <span class="card-hd-icon">📖</span>
-        <span class="card-hd-title">Paste Your Lesson</span>
-      </div>
-      <div class="input-body">
-        <textarea id="lessonInput" placeholder="Paste your devotional lesson here — title, scripture reference, devotional thought, reflection questions, application, and prayer…"></textarea>
-        <button class="parse-btn" onclick="parseLesson()">Parse &amp; Tag Lesson</button>
-      </div>
-    </div>
-
-    <!-- Output -->
-    <div class="card">
-      <div class="card-hd">
-        <span class="card-hd-icon">🏷️</span>
-        <span class="card-hd-title">Parsed Result</span>
-      </div>
-      <div id="output">
-        <div class="empty-state">
-          <span class="empty-icon">☩</span>
-          <p>Your parsed lesson will appear here</p>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- Library -->
   <div class="lib-section">
@@ -508,6 +509,7 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
       </div>
       <div class="lib-controls">
         <input class="search-in" id="searchIn" type="text" placeholder="Search…" oninput="filterLib()" />
+        <button class="new-lesson-btn" onclick="openParseModal()">+ New Lesson</button>
         <button class="s-btn" id="accountBtn" onclick="showAccountControls()" style="display:none;">Account</button>
       </div>
     </div>
@@ -518,6 +520,42 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
 
 </div>
 <div class="toast" id="toast"></div>
+
+<!-- ══ Parse Modal ══════════════════════════════════════════════════════════ -->
+<div id="parseModal" class="parse-modal" style="display:none">
+  <div class="pm-inner">
+    <div class="pm-topbar">
+      <div class="pm-title">New Lesson</div>
+      <button class="pm-close" onclick="closeParseModal()">✕ Close</button>
+    </div>
+    <div class="cols">
+      <!-- Input -->
+      <div class="card">
+        <div class="card-hd">
+          <span class="card-hd-icon">📖</span>
+          <span class="card-hd-title">Paste Your Lesson</span>
+        </div>
+        <div class="input-body">
+          <textarea id="lessonInput" placeholder="Paste your devotional lesson here — title, scripture reference, devotional thought, reflection questions, application, and prayer…"></textarea>
+          <button class="parse-btn" onclick="parseLesson()">Parse &amp; Tag Lesson</button>
+        </div>
+      </div>
+      <!-- Output -->
+      <div class="card">
+        <div class="card-hd">
+          <span class="card-hd-icon">🏷️</span>
+          <span class="card-hd-title">Parsed Result</span>
+        </div>
+        <div id="output">
+          <div class="empty-state">
+            <span class="empty-icon">☩</span>
+            <p>Your parsed lesson will appear here</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ══ Detail View ══════════════════════════════════════════════════════════ -->
 <div id="detailView" class="dv-overlay" style="display:none">
@@ -1087,6 +1125,7 @@ async function saveLesson() {
     allLessons = lib;
     showToast('Saved locally (no Supabase)');
     renderLib(lib);
+    closeParseModal();
     return;
   }
 
@@ -1120,6 +1159,7 @@ async function saveLesson() {
   document.getElementById('saveBtn').disabled = false;
   if (error) { showToast('Save failed: ' + error.message.slice(0,50), true); return; }
   showToast('Lesson saved ✦');
+  closeParseModal();
   loadLibrary();
 }
 
@@ -1204,6 +1244,16 @@ async function delLesson(e, id) {
 /* ════════════════════════════════════════════════════════════════════════════
    UTILS
    ════════════════════════════════════════════════════════════════════════════ */
+function openParseModal() {
+  document.getElementById('parseModal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeParseModal() {
+  document.getElementById('parseModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
 function showToast(msg, isErr = false) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -1675,11 +1725,13 @@ let _lmSecs     = 0;
 let _lmRunning  = false;
 let _lmLessonId = null;
 
-function buildLeaderSteps(lesson, sec) {
+function buildLeaderSteps(lesson, sec, scriptureVerses = null) {
   const steps = [];
   steps.push({ type: 'intro', title: lesson.title, ref: lesson.scripture_ref, minutes: lesson.estimated_minutes });
   if (lesson.key_verse) {
-    steps.push({ type: 'verse', text: lesson.key_verse, ref: lesson.key_verse_ref || lesson.scripture_ref });
+    steps.push({ type: 'verse', label: 'Key Verse', text: lesson.key_verse, ref: lesson.key_verse_ref || lesson.scripture_ref });
+  } else if (scriptureVerses?.length) {
+    steps.push({ type: 'verse', label: 'Scripture', verses: scriptureVerses, ref: lesson.scripture_ref });
   }
   const paras = sec.paragraphs.length ? sec.paragraphs : (lesson.summary ? [lesson.summary] : []);
   paras.forEach((p, i) => steps.push({ type: 'devotional', text: p, index: i, total: paras.length }));
@@ -1710,9 +1762,12 @@ function renderLeaderStep() {
       ${step.minutes ? `<div class="lm-sub" style="margin-top:20px">Estimated time: ${step.minutes} min</div>` : ''}
     </div>`;
   } else if (step.type === 'verse') {
+    const body = step.verses?.length
+      ? `<div class="lm-scripture-passage">${step.verses.map(v => `<span><sup>${v.n}</sup>${esc(v.text)}</span>`).join(' ')}</div>`
+      : `<div class="lm-verse-q">"${esc(step.text)}"</div>`;
     html = `<div class="lm-card">
-      <div class="lm-eyebrow">Key Verse</div>
-      <div class="lm-verse-q">"${esc(step.text)}"</div>
+      <div class="lm-eyebrow">${esc(step.label || 'Verse')}</div>
+      ${body}
       ${step.ref ? `<div class="lm-verse-ref">— ${esc(step.ref)}</div>` : ''}
     </div>`;
   } else if (step.type === 'devotional') {
@@ -1749,10 +1804,11 @@ function renderLeaderStep() {
   document.getElementById('lmStage').innerHTML = html;
 }
 
-function enterLeaderMode() {
+async function enterLeaderMode() {
   if (!_currentLesson) return;
-  const sec   = parseRawSections(_currentLesson.raw_text || '');
-  _lmSteps    = buildLeaderSteps(_currentLesson, sec);
+  const sec = parseRawSections(_currentLesson.raw_text || '');
+  const scriptureVerses = _currentLesson.key_verse ? null : await fetchBsbVerses(_currentLesson.scripture_ref);
+  _lmSteps = buildLeaderSteps(_currentLesson, sec, scriptureVerses);
   _lmIndex    = 0;
   _lmLessonId = _currentLesson.id;
 
