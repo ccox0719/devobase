@@ -218,11 +218,6 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
 <body>
 <div class="wrap">
 
-  <!-- Settings -->
-  <div class="settings-bar" id="settingsBar">
-    <div class="s-pill" id="connPill">Loading Supabase config…</div>
-  </div>
-
   <div class="settings-bar" id="authBar">
     <div class="s-field">
       <div class="s-label">Email</div>
@@ -235,7 +230,6 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
     <button class="s-btn" onclick="signIn()">Sign In</button>
     <button class="s-btn" onclick="signUp()">Sign Up</button>
     <button class="s-btn" onclick="sendReset()">Reset Email</button>
-    <button class="s-btn" onclick="signOut()" id="signOutBtn" style="display:none;">Sign Out</button>
     <div class="s-pill" id="authPill">Signed out</div>
   </div>
 
@@ -284,6 +278,7 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
       </div>
       <div class="lib-controls">
         <input class="search-in" id="searchIn" type="text" placeholder="Search…" oninput="filterLib()" />
+        <button class="s-btn" id="accountBtn" onclick="showAccountControls()" style="display:none;">Account</button>
       </div>
     </div>
     <div class="lib-grid" id="libGrid">
@@ -677,8 +672,12 @@ function renderSignedOutLibrary() {
 }
 
 function updateAuthUi() {
+  const authBar = document.getElementById('authBar');
+  const accountBtn = document.getElementById('accountBtn');
   document.getElementById('authPill').textContent = getUserLabel(currentUser);
-  document.getElementById('signOutBtn').style.display = currentUser ? 'inline-flex' : 'none';
+  authBar.style.display = currentUser ? 'none' : 'flex';
+  accountBtn.style.display = currentUser ? 'inline-flex' : 'none';
+  accountBtn.textContent = currentUser ? (currentUser.email || 'Account') : 'Account';
 }
 
 async function attachAuthState() {
@@ -723,7 +722,6 @@ async function connect(cfgOverride) {
   const url = (cfg.url || document.getElementById('cfgUrl')?.value || '').trim();
   const key = (cfg.key || document.getElementById('cfgKey')?.value || '').trim();
   if (!url || !key) {
-    document.getElementById('connPill').textContent = 'No Supabase config found';
     showToast('Using local mode', true);
     sb = null;
     return;
@@ -742,9 +740,6 @@ async function connect(cfgOverride) {
   const keyEl = document.getElementById('cfgKey');
   if (urlEl) urlEl.value = url;
   if (keyEl) keyEl.value = key;
-  document.getElementById('settingsBar').classList.add('ok');
-  document.getElementById('connPill').textContent = 'Supabase ready';
-  showToast('Supabase ready');
   await attachAuthState();
 }
 
@@ -797,6 +792,11 @@ async function signOut() {
   updateAuthUi();
   renderSignedOutLibrary();
   showToast('Signed out');
+}
+
+function showAccountControls() {
+  if (!currentUser) return;
+  if (confirm('Sign out?')) signOut();
 }
 
 async function saveLesson() {
@@ -978,7 +978,6 @@ async function bootstrap() {
     return;
   }
 
-  document.getElementById('connPill').textContent = 'Local mode';
   loadLibrary(); // load from localStorage if no Supabase
 }
 
