@@ -100,6 +100,31 @@ textarea {
 }
 textarea:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(176,125,42,0.10); }
 textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
+.paste-template {
+  margin-bottom: 12px; border: 1px solid rgba(176,125,42,.24);
+  border-radius: var(--r); background: rgba(176,125,42,.06); overflow: hidden;
+}
+.paste-template summary {
+  cursor: pointer; list-style: none; padding: 11px 12px;
+  font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--gold); display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.paste-template summary::-webkit-details-marker { display: none; }
+.paste-template summary::after { content: '+'; color: var(--ink3); font-size: 14px; line-height: 1; }
+.paste-template[open] summary::after { content: '-'; }
+.paste-template-body { padding: 0 12px 12px; }
+.paste-template pre {
+  margin: 0 0 10px; white-space: pre-wrap; font-family: 'Karla', sans-serif;
+  font-size: 12px; line-height: 1.55; color: var(--ink2);
+}
+.paste-template-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.paste-template-btn {
+  border: 1px solid var(--border); background: rgba(255,255,255,.6); color: var(--ink2);
+  border-radius: var(--r); padding: 7px 10px; font-family: 'Karla', sans-serif;
+  font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  cursor: pointer;
+}
+.paste-template-btn:hover { border-color: var(--gold); color: var(--gold); }
 
 .parse-btn {
   margin-top: 11px; width: 100%; padding: 11px 18px; background: var(--ink);
@@ -813,6 +838,33 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
           <span class="card-hd-title">Paste Your Lesson</span>
         </div>
         <div class="input-body">
+          <details class="paste-template">
+            <summary>Suggested Paste Format</summary>
+            <div class="paste-template-body">
+<pre>Title: A clear lesson title
+Scripture: John 15:1-8
+
+Key Verse: "I am the vine and you are the branches." - John 15:5
+
+Devotional Thought:
+Paste the main teaching here in complete paragraphs.
+
+Reflection Questions:
+1. What stands out in this passage?
+2. Where does this challenge your heart?
+3. What step of faith should you take?
+
+Application:
+Name one practical response for this week.
+
+Prayer:
+Write a short closing prayer.</pre>
+              <div class="paste-template-actions">
+                <button class="paste-template-btn" type="button" onclick="useSuggestedPaste()">Use Format</button>
+                <button class="paste-template-btn" type="button" onclick="copySuggestedPaste()">Copy</button>
+              </div>
+            </div>
+          </details>
           <textarea id="lessonInput" placeholder="Paste your devotional lesson here — title, scripture reference, devotional thought, reflection questions, application, and prayer…"></textarea>
           <button class="parse-btn" onclick="parseLesson()">Parse &amp; Tag Lesson</button>
         </div>
@@ -931,6 +983,34 @@ const AUDIENCE_MAP = {
   'All Ages':    ['all ages','everyone','family','congregation','church'],
 };
 
+const SUGGESTED_LESSON_PASTE = `Title: A clear lesson title
+Scripture: John 15:1-8
+
+Key Verse: "I am the vine and you are the branches." - John 15:5
+
+Devotional Thought:
+Paste the main teaching here in complete paragraphs.
+
+Reflection Questions:
+1. What stands out in this passage?
+2. Where does this challenge your heart?
+3. What step of faith should you take?
+
+Application:
+Name one practical response for this week.
+
+Prayer:
+Write a short closing prayer.`;
+
+function readLessonField(raw, labels) {
+  for (const label of labels) {
+    const safeLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const match = raw.match(new RegExp('^\\s*' + safeLabel + '\\s*:\\s*(.+)$', 'im'));
+    if (match && match[1].trim()) return match[1].trim();
+  }
+  return '';
+}
+
 function parseLesson() {
   const raw = document.getElementById('lessonInput').value.trim();
   if (!raw) { showToast('Paste a lesson first', true); return; }
@@ -938,12 +1018,16 @@ function parseLesson() {
   const lines   = raw.split('\n').map(l => l.trim()).filter(Boolean);
   const lower   = raw.toLowerCase();
   const result  = {};
+  const explicitTitle = readLessonField(raw, ['Title']);
+  const explicitRef   = readLessonField(raw, ['Scripture Reference', 'Scripture', 'Passage']);
+  const explicitVerse = readLessonField(raw, ['Key Verse', 'Key Passage', 'Memory Verse']);
 
   // ── Title ────────────────────────────────────────────────────────────────
   // First non-empty line that isn't a scripture ref or "A Devotional from..."
-  result.title = (lines.find(l =>
+  result.title = explicitTitle || (lines.find(l =>
     l.length > 2 &&
     !/^a devotional/i.test(l) &&
+    !/^(title|scripture|passage|key verse|key passage|memory verse)\s*:/i.test(l) &&
     !/^\d+:\d+/.test(l)
   ) || 'Untitled').replace(/^#+\s*/, '');
 
@@ -958,7 +1042,7 @@ function parseLesson() {
     '\\s+(\\d+):(\\d+(?:[–\\-—]\\d+)?(?:,\\s*\\d+)*)',
     'i'
   );
-  const refMatch = raw.match(refPattern);
+  const refMatch = (explicitRef || raw).match(refPattern);
   if (refMatch) {
     result.scriptureRef  = refMatch[0].replace(/\s+/g, ' ').trim();
     result.scriptureBook = BIBLE_BOOKS.find(b => b.toLowerCase() === refMatch[1].toLowerCase()) || refMatch[1];
@@ -969,12 +1053,13 @@ function parseLesson() {
 
   // ── Key verse ─────────────────────────────────────────────────────────────
   // Quoted text inside the "Key Passage" or near the scripture ref
-  const quoteMatch = raw.match(/"([^"]{20,300})"/);
+  const quoteSource = explicitVerse || raw;
+  const quoteMatch = quoteSource.match(/"([^"]{20,300})"/);
   result.keyVerse = quoteMatch ? quoteMatch[1].trim() : '';
 
   // Try to find attribution line after the quote (— Book ch:v)
   if (quoteMatch) {
-    const afterQuote = raw.slice(raw.indexOf(quoteMatch[0]) + quoteMatch[0].length);
+    const afterQuote = quoteSource.slice(quoteSource.indexOf(quoteMatch[0]) + quoteMatch[0].length);
     const attrMatch  = afterQuote.match(/^[\s\n]*[—–-]\s*([^\n]{3,60})/);
     result.keyVerseRef = attrMatch ? attrMatch[1].trim() : result.scriptureRef;
   } else {
@@ -1564,6 +1649,23 @@ function showToast(msg, isErr = false) {
   t.className = 'toast' + (isErr ? ' err' : '');
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function useSuggestedPaste() {
+  const input = document.getElementById('lessonInput');
+  input.value = SUGGESTED_LESSON_PASTE;
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+  showToast('Format added');
+}
+
+async function copySuggestedPaste() {
+  try {
+    await navigator.clipboard.writeText(SUGGESTED_LESSON_PASTE);
+    showToast('Format copied');
+  } catch {
+    useSuggestedPaste();
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
