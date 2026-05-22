@@ -1,0 +1,24 @@
+{
+  "name": "Devotional Lesson Library",
+  "short_name": "Devobase",
+  "description": "A devotional lesson library for parsing, tagging, saving, and leading lessons.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f2ece0",
+  "theme_color": "#b07d2a",
+  "icons": [
+    {
+      "src": "/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
