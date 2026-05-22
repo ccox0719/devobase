@@ -218,6 +218,31 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
 @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 .fade-in { animation: fadeUp .3s ease both; }
 
+/* ── Account Menu ─────────────────────────────────────────────────────────── */
+.acct-menu-wrap { position: relative; }
+.acct-btn {
+  padding: 0 14px; height: 34px; background: var(--ink); color: var(--bg);
+  border: none; border-radius: var(--r); font-family: 'Karla', sans-serif;
+  font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+  cursor: pointer; white-space: nowrap; transition: background .15s;
+}
+.acct-btn:hover { background: var(--ink2); }
+.acct-btn.authed {
+  background: transparent; border: 1px solid var(--border); color: var(--ink2);
+}
+.acct-btn.authed:hover { border-color: var(--gold); color: var(--gold); }
+.acct-dropdown {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 50;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); box-shadow: 0 6px 24px var(--shadow);
+  padding: 18px; min-width: 290px; display: none; flex-direction: column; gap: 10px;
+}
+.acct-dropdown.open { display: flex; animation: fadeUp .2s ease both; }
+.acct-drop-title { font-size: 9.5px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); }
+.acct-drop-user { font-size: 12.5px; font-weight: 300; color: var(--ink2); padding-bottom: 10px; border-bottom: 1px solid var(--divider); }
+.acct-drop-user strong { font-weight: 500; color: var(--ink); }
+.acct-drop-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
 /* ══ Parse Modal ════════════════════════════════════════════════════════════ */
 .parse-modal {
   position: fixed; inset: 0; z-index: 100; overflow-y: auto;
@@ -478,21 +503,6 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
 <body>
 <div class="wrap">
 
-  <div class="settings-bar" id="authBar">
-    <div class="s-field">
-      <div class="s-label">Email</div>
-      <input class="s-input" id="authEmail" type="email" placeholder="you@example.com" autocomplete="email" />
-    </div>
-    <div class="s-field">
-      <div class="s-label">Password</div>
-      <input class="s-input" id="authPassword" type="password" placeholder="••••••••" autocomplete="current-password" />
-    </div>
-    <button class="s-btn" onclick="signIn()">Sign In</button>
-    <button class="s-btn" onclick="signUp()">Sign Up</button>
-    <button class="s-btn" onclick="sendReset()">Reset Email</button>
-    <div class="s-pill" id="authPill">Signed out</div>
-  </div>
-
   <!-- Header -->
   <header>
     <div class="orn">✦ ✦ ✦</div>
@@ -510,7 +520,12 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
       <div class="lib-controls">
         <input class="search-in" id="searchIn" type="text" placeholder="Search…" oninput="filterLib()" />
         <button class="new-lesson-btn" onclick="openParseModal()">+ New Lesson</button>
-        <button class="s-btn" id="accountBtn" onclick="showAccountControls()" style="display:none;">Account</button>
+        <div class="acct-menu-wrap" id="acctMenuWrap">
+          <button class="acct-btn" id="acctBtn" onclick="toggleAccountMenu()">Sign In ▾</button>
+          <div class="acct-dropdown" id="acctDropdown">
+            <div id="acctDropdownInner"></div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="lib-grid" id="libGrid">
@@ -986,12 +1001,39 @@ function renderSignedOutLibrary() {
 }
 
 function updateAuthUi() {
-  const authBar = document.getElementById('authBar');
-  const accountBtn = document.getElementById('accountBtn');
-  document.getElementById('authPill').textContent = getUserLabel(currentUser);
-  authBar.style.display = currentUser ? 'none' : 'flex';
-  accountBtn.style.display = currentUser ? 'inline-flex' : 'none';
-  accountBtn.textContent = currentUser ? (currentUser.email || 'Account') : 'Account';
+  const btn   = document.getElementById('acctBtn');
+  const inner = document.getElementById('acctDropdownInner');
+  if (!btn || !inner) return;
+
+  if (currentUser) {
+    btn.className   = 'acct-btn authed';
+    btn.textContent = 'Account ▾';
+    inner.innerHTML = `
+      <div class="acct-drop-title">Account</div>
+      <div class="acct-drop-user">Signed in as<br><strong>${esc(currentUser.email || currentUser.id.slice(0,8))}</strong></div>
+      <div class="acct-drop-actions">
+        <button class="s-btn" onclick="signOut();closeAccountMenu()">Sign Out</button>
+      </div>`;
+    closeAccountMenu();
+  } else {
+    btn.className   = 'acct-btn';
+    btn.textContent = 'Sign In ▾';
+    inner.innerHTML = `
+      <div class="acct-drop-title">Sign In</div>
+      <div class="s-field">
+        <div class="s-label">Email</div>
+        <input class="s-input" id="authEmail" type="email" placeholder="you@example.com" autocomplete="email" />
+      </div>
+      <div class="s-field">
+        <div class="s-label">Password</div>
+        <input class="s-input" id="authPassword" type="password" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <div class="acct-drop-actions">
+        <button class="s-btn" onclick="signIn()">Sign In</button>
+        <button class="s-btn" onclick="signUp()">Sign Up</button>
+        <button class="s-btn" onclick="sendReset()">Reset</button>
+      </div>`;
+  }
 }
 
 async function attachAuthState() {
@@ -1886,6 +1928,21 @@ function saveLeaderNotes() {
 function setLeaderFont(size) {
   document.getElementById('leaderMode').className = 'lm-overlay fs-' + size;
 }
+
+/* ── Account Menu ─────────────────────────────────────────────────────────── */
+function toggleAccountMenu() {
+  const d = document.getElementById('acctDropdown');
+  if (!d.classList.contains('open')) updateAuthUi();
+  d.classList.toggle('open');
+}
+
+function closeAccountMenu() {
+  document.getElementById('acctDropdown')?.classList.remove('open');
+}
+
+document.addEventListener('click', e => {
+  if (!document.getElementById('acctMenuWrap')?.contains(e.target)) closeAccountMenu();
+});
 
 /* ── Init ─────────────────────────────────────────────────────────────────── */
 async function bootstrap() {
