@@ -502,6 +502,264 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
   caret-color: var(--gold);
 }
 .lm-notes-ta::placeholder { color: rgba(232,223,200,.18); font-style: italic; }
+
+@media (max-width: 480px) {
+  body {
+    font-size: 13.5px;
+    min-height: 100dvh;
+  }
+
+  .wrap {
+    width: 100%;
+    padding: calc(18px + env(safe-area-inset-top)) 14px calc(84px + env(safe-area-inset-bottom));
+  }
+
+  .settings-bar {
+    margin-bottom: 22px;
+    padding: 12px;
+    gap: 9px;
+  }
+
+  .s-field {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+
+  .s-btn,
+  .new-lesson-btn,
+  .acct-btn,
+  .dv-back,
+  .dv-edit-btn,
+  .dv-lead-btn,
+  .pm-close {
+    min-height: 42px;
+    padding: 0 13px;
+    font-size: 10.5px;
+    letter-spacing: .08em;
+  }
+
+  header {
+    padding-bottom: 18px;
+    margin-bottom: 22px;
+  }
+
+  .orn {
+    letter-spacing: 8px;
+    margin-bottom: 6px;
+  }
+
+  header h1 {
+    font-size: 34px;
+    line-height: 1.05;
+  }
+
+  .tagline {
+    font-size: 10px;
+    letter-spacing: .14em;
+  }
+
+  .lib-hd {
+    align-items: stretch;
+    gap: 11px;
+    margin-bottom: 14px;
+  }
+
+  .lib-title {
+    width: 100%;
+    justify-content: space-between;
+    font-size: 23px;
+  }
+
+  .lib-controls {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .search-in {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-height: 42px;
+    font-size: 14px;
+  }
+
+  .new-lesson-btn {
+    width: 100%;
+  }
+
+  .acct-menu-wrap {
+    justify-self: stretch;
+  }
+
+  .acct-btn {
+    width: 100%;
+  }
+
+  .acct-dropdown {
+    right: 0;
+    left: auto;
+    width: min(88vw, 320px);
+    min-width: 0;
+  }
+
+  .lib-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .lib-card {
+    padding: 14px;
+  }
+
+  .lc-title {
+    font-size: 18px;
+  }
+
+  .lc-meta {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .parse-modal,
+  .dv-overlay {
+    min-height: 100dvh;
+  }
+
+  .pm-inner,
+  .dv-inner {
+    padding: calc(14px + env(safe-area-inset-top)) 14px calc(82px + env(safe-area-inset-bottom));
+  }
+
+  .pm-topbar,
+  .dv-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    margin: -14px -14px 18px;
+    padding: calc(12px + env(safe-area-inset-top)) 14px 12px;
+    background: rgba(250,246,238,.96);
+    backdrop-filter: blur(8px);
+  }
+
+  .pm-title {
+    font-size: 22px;
+  }
+
+  .cols {
+    gap: 14px;
+  }
+
+  textarea {
+    min-height: 260px;
+    font-size: 14px;
+  }
+
+  .input-body,
+  .result {
+    padding: 12px;
+  }
+
+  .meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .counts,
+  .action-row,
+  .dv-edit-actions {
+    flex-direction: column;
+  }
+
+  .dv-title {
+    font-size: 32px;
+  }
+
+  .dv-section {
+    margin-bottom: 24px;
+  }
+
+  .dv-scripture-block {
+    padding: 14px;
+    font-size: 16px;
+    line-height: 1.8;
+  }
+
+  .dv-question {
+    padding: 10px 12px;
+  }
+
+  .lm-overlay {
+    min-height: 100dvh;
+  }
+
+  .lm-topbar {
+    padding: calc(8px + env(safe-area-inset-top)) 10px 9px;
+    gap: 8px;
+  }
+
+  .lm-progress-wrap {
+    flex-basis: 100%;
+    order: -1;
+  }
+
+  .lm-step-counter {
+    flex: 1;
+  }
+
+  .lm-controls {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .lm-ctrl-btn,
+  .lm-font-sel {
+    width: 100%;
+    min-height: 36px;
+    padding: 5px 6px;
+    font-size: 11px;
+  }
+
+  .lm-stage {
+    align-items: flex-start;
+    padding: 26px 18px;
+  }
+
+  .lm-card {
+    padding-top: 4px;
+  }
+
+  .lm-overlay.fs-sm { --lm-body:15px; --lm-big:24px; --lm-huge:30px; }
+  .lm-overlay.fs-md { --lm-body:17px; --lm-big:28px; --lm-huge:36px; }
+  .lm-overlay.fs-lg { --lm-body:19px; --lm-big:32px; --lm-huge:42px; }
+
+  .lm-nav {
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    gap: 8px;
+  }
+
+  .lm-nav-btn {
+    flex: 1;
+    min-height: 42px;
+    padding: 9px 10px;
+    font-size: 11px;
+    letter-spacing: .08em;
+  }
+
+  .lm-skip-btn {
+    position: absolute;
+    left: 50%;
+    bottom: calc(60px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    background: #141210;
+  }
+
+  .lm-notes-panel {
+    width: 100%;
+  }
+}
 </style>
 </head>
 <body>
