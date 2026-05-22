@@ -566,11 +566,11 @@ function parseLesson() {
 
   // ── Title ────────────────────────────────────────────────────────────────
   // First non-empty line that isn't a scripture ref or "A Devotional from..."
-  result.title = lines.find(l =>
+  result.title = (lines.find(l =>
     l.length > 2 &&
     !/^a devotional/i.test(l) &&
     !/^\d+:\d+/.test(l)
-  ) || 'Untitled';
+  ) || 'Untitled').replace(/^#+\s*/, '');
 
   // ── Subtitle ─────────────────────────────────────────────────────────────
   const subMatch = raw.match(/A Devotional(?:\s+from)?\s+([^\n]+)/i);
@@ -1159,20 +1159,36 @@ function parseRawSections(rawText) {
   const r = { devotionalThought: '', paragraphs: [], questions: [], application: '', prayer: '' };
   if (!rawText) return r;
 
-  const devot = rawText.match(/Devotional\s+Thought[:\s]*\n([\s\S]*?)(?=\n[ \t]*(?:Reflection\s+Questions?|Application)\b)/i);
-  r.devotionalThought = devot ? devot[1].trim() : '';
+  // Finds a section header that may be prefixed with markdown # characters
+  function findSection(name) {
+    return new RegExp(`^#{0,4}\\s*${name}[\\s:]*$`, 'im').exec(rawText);
+  }
+
+  // Slices rawText between two header matches, strips --- dividers, trims
+  function sliceBetween(startM, endM) {
+    if (!startM) return '';
+    const start = startM.index + startM[0].length;
+    const end   = endM ? endM.index : rawText.length;
+    return rawText.slice(start, end)
+      .split('\n').filter(l => !/^-{3,}$/.test(l.trim())).join('\n')
+      .trim();
+  }
+
+  const devotM = findSection('Devotional\\s+Thought');
+  const reflM  = findSection('Reflection\\s+Questions?');
+  const appM   = findSection('Application');
+  const prayM  = findSection('Prayer');
+
+  r.devotionalThought = sliceBetween(devotM, reflM || appM);
   r.paragraphs = r.devotionalThought
-    ? r.devotionalThought.split(/\n[ \t]*\n/).map(p => p.trim()).filter(Boolean)
+    ? r.devotionalThought.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean)
     : [];
 
   const qMatches = rawText.match(/^[ \t]*\d+\.\s*.+/gm) || [];
   r.questions = qMatches.map(q => q.replace(/^[ \t]*\d+\.\s*/, '').trim());
 
-  const app = rawText.match(/\bApplication\b[:\s]*\n([\s\S]*?)(?=\n[ \t]*(?:Prayer|Leader\s+Notes?)\b|$)/i);
-  r.application = app ? app[1].trim() : '';
-
-  const pray = rawText.match(/\bPrayer\b[:\s]*\n([\s\S]*?)(?=\n[ \t]*Leader\s+Notes?\b|$)/i);
-  r.prayer = pray ? pray[1].trim() : '';
+  r.application = sliceBetween(appM, prayM);
+  r.prayer      = sliceBetween(prayM, null);
 
   return r;
 }
