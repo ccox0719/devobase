@@ -1086,19 +1086,30 @@ function parseLesson() {
   const explicitTitle = readLessonField(raw, ['Title']);
   const explicitRef   = readLessonField(raw, ['Scripture Reference', 'Scripture', 'Passage']);
   const explicitVerse = readLessonField(raw, ['Key Verse', 'Key Passage', 'Memory Verse']);
+  const explicitSeries = readLessonField(raw, ['Series']);
 
   // ── Title ────────────────────────────────────────────────────────────────
   // First non-empty line that isn't a scripture ref or "A Devotional from..."
   result.title = explicitTitle || (lines.find(l =>
     l.length > 2 &&
     !/^a devotional/i.test(l) &&
-    !/^(title|scripture|passage|key verse|key passage|memory verse)\s*:/i.test(l) &&
+    !/^(title|series|scripture|passage|key verse|key passage|memory verse)\s*:/i.test(l) &&
     !/^\d+:\d+/.test(l)
   ) || 'Untitled').replace(/^#+\s*/, '');
 
-  // ── Subtitle ─────────────────────────────────────────────────────────────
-  const subMatch = raw.match(/A Devotional(?:\s+from)?\s+([^\n]+)/i);
-  result.subtitle = subMatch ? subMatch[1].trim() : '';
+  // ── Series / Subtitle ────────────────────────────────────────────────────
+  const seriesText = explicitSeries || readLessonField(raw, ['Series Name']);
+  if (seriesText) {
+    const seriesMatch = seriesText.match(/^(.*?)(?:\s+(\d+))?$/);
+    result.seriesName = seriesMatch ? seriesMatch[1].trim() : seriesText.trim();
+    result.seriesOrder = seriesMatch && seriesMatch[2] ? Number(seriesMatch[2]) : null;
+    result.subtitle = seriesText.trim();
+  } else {
+    result.seriesName = '';
+    result.seriesOrder = null;
+    const subMatch = raw.match(/A Devotional(?:\s+from)?\s+([^\n]+)/i);
+    result.subtitle = subMatch ? subMatch[1].trim() : '';
+  }
 
   // ── Scripture reference ───────────────────────────────────────────────────
   // Match one or more passage chunks, including shorthand follow-ups after commas.
@@ -1257,12 +1268,14 @@ function renderResult(d) {
       <div class="mf">
         <div class="ml">Series Name</div>
         <input id="parsedSeriesName" type="text" placeholder="optional — e.g. Sermon on the Mount"
+          value="${esc(d.seriesName || '')}"
           oninput="updateField('seriesName',this.value)"
           style="display:block;width:100%;border:none;border-bottom:1px dashed var(--border);background:transparent;outline:none;font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:400;color:var(--ink);padding:2px 0;" />
       </div>
       <div class="mf">
         <div class="ml">Series Order</div>
         <input id="parsedSeriesOrder" type="number" min="1" placeholder="1"
+          value="${d.seriesOrder || ''}"
           oninput="updateField('seriesOrder',this.value)"
           style="display:block;width:100%;border:none;border-bottom:1px dashed var(--border);background:transparent;outline:none;font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:400;color:var(--ink);padding:2px 0;" />
       </div>
