@@ -435,6 +435,8 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
 }
 .dv-sp { margin-bottom: 12px; }
 .dv-sp:last-of-type { margin-bottom: 0; }
+.dv-passage { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--divider); }
+.dv-passage:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
 .dv-sv { margin-right: 3px; }
 .dv-bsb-credit { margin-top: 12px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink3); opacity: .5; }
 .dv-edit-btn {
@@ -2030,24 +2032,30 @@ async function fetchBsbVerses(reference) {
       const res  = await fetch(`${BSB_BASE}/${BSB_TR}/${bookId}/${parsed.chapter}.json`);
       if (!res.ok) continue;
 
-      const data = await res.json();
-      const content = data?.chapter?.content;
-      if (!Array.isArray(content)) continue;
+    const data = await res.json();
+    const content = data?.chapter?.content;
+    if (!Array.isArray(content)) continue;
 
-      let pendingParagraph = false;
-      let startedGroup = false;
-      content.forEach(block => {
-        if (block?.type === 'line_break') { pendingParagraph = true; return; }
-        if (block?.type !== 'verse') return;
-        const n = Number(block.number);
-        if (Number.isNaN(n) || n < parsed.start || n > parsed.end) return;
-        const text = _fixSpacing(_flatTokens(block.content));
-        if (!text) return;
-        verses.push({ n, text, newPara: pendingParagraph || (!startedGroup && verses.length > 0) });
-        pendingParagraph = false;
-        startedGroup = true;
+    let pendingParagraph = false;
+    let startedGroup = false;
+    const groupIsFirst = verses.length === 0;
+    content.forEach(block => {
+      if (block?.type === 'line_break') { pendingParagraph = true; return; }
+      if (block?.type !== 'verse') return;
+      const n = Number(block.number);
+      if (Number.isNaN(n) || n < parsed.start || n > parsed.end) return;
+      const text = _fixSpacing(_flatTokens(block.content));
+      if (!text) return;
+      verses.push({
+        n,
+        text,
+        newPara: pendingParagraph || (!startedGroup && verses.length > 0),
+        passageBreak: !groupIsFirst && !startedGroup,
       });
-    }
+      pendingParagraph = false;
+      startedGroup = true;
+    });
+  }
 
     const result = verses.length ? verses : null;
     _bsbCache.set(reference, result);
@@ -2063,7 +2071,7 @@ function renderBsbHtml(verses) {
   const groups = [];
   let cur = [];
   verses.forEach(v => {
-    if (v.newPara && cur.length) { groups.push(cur); cur = []; }
+    if ((v.passageBreak || v.newPara) && cur.length) { groups.push(cur); cur = []; }
     cur.push(v);
   });
   if (cur.length) groups.push(cur);
@@ -2072,7 +2080,7 @@ function renderBsbHtml(verses) {
     const inner = grp.map(v =>
       `<span class="dv-sv"><sup>${v.n}</sup>${esc(v.text)}</span>`
     ).join(' ');
-    return `<p class="dv-sp">${inner}</p>`;
+    return `<p class="dv-sp${grp[0]?.passageBreak ? ' dv-passage' : ''}">${inner}</p>`;
   }).join('');
 
   return `${body}<div class="dv-bsb-credit">Berean Standard Bible</div>`;
