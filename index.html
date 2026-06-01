@@ -1110,7 +1110,7 @@ function parseLesson() {
   );
   const refMatch = (explicitRef || raw).match(refPattern);
   if (refMatch) {
-    result.scriptureRef  = refMatch[0].replace(/\s+/g, ' ').trim();
+    result.scriptureRef  = _normalizeRefGroups(refMatch[0].replace(/\s+/g, ' ').trim()).join('; ');
     result.scriptureBook = BIBLE_BOOKS.find(b => b.toLowerCase() === refMatch[1].toLowerCase()) || refMatch[1];
   } else {
     result.scriptureRef  = '';
@@ -1127,7 +1127,7 @@ function parseLesson() {
   if (quoteMatch) {
     const afterQuote = quoteSource.slice(quoteSource.indexOf(quoteMatch[0]) + quoteMatch[0].length);
     const attrMatch  = afterQuote.match(/^[\s\n]*[—–-]\s*([^\n]{3,60})/);
-    result.keyVerseRef = attrMatch ? attrMatch[1].trim() : result.scriptureRef;
+    result.keyVerseRef = attrMatch ? _normalizeRefGroups(attrMatch[1].trim()).join('; ') : result.scriptureRef;
   } else {
     result.keyVerseRef = result.scriptureRef;
   }
@@ -1953,6 +1953,45 @@ function _splitRefGroups(reference) {
     .filter(Boolean);
 }
 
+function _normalizeRefGroups(reference) {
+  const groups = _splitRefGroups((reference || '').replace(/[–—]/g, '-'));
+  if (!groups.length) return [];
+
+  const normalized = [];
+  let lastBook = '';
+  let lastChapter = '';
+
+  for (const group of groups) {
+    const parts = group.split(',').map(p => p.trim()).filter(Boolean);
+    for (const part of parts) {
+      const full = part.match(/^(.+?)\s+(\d+):(\d+(?:-\d+)?)$/);
+      if (full) {
+        lastBook = full[1].trim();
+        lastChapter = full[2];
+        normalized.push(`${lastBook} ${lastChapter}:${full[3]}`);
+        continue;
+      }
+
+      const chapterVerse = part.match(/^(\d+):(\d+(?:-\d+)?)$/);
+      if (chapterVerse && lastBook) {
+        lastChapter = chapterVerse[1];
+        normalized.push(`${lastBook} ${lastChapter}:${chapterVerse[2]}`);
+        continue;
+      }
+
+      const verseOnly = part.match(/^(\d+(?:-\d+)?)$/);
+      if (verseOnly && lastBook && lastChapter) {
+        normalized.push(`${lastBook} ${lastChapter}:${verseOnly[1]}`);
+        continue;
+      }
+
+      normalized.push(part);
+    }
+  }
+
+  return normalized;
+}
+
 async function fetchBsbVerses(reference) {
   if (!reference) return null;
   if (_bsbCache.has(reference)) return _bsbCache.get(reference);
@@ -1962,7 +2001,7 @@ async function fetchBsbVerses(reference) {
 
   try {
     const verses = [];
-    const groups = _splitRefGroups(reference);
+    const groups = _normalizeRefGroups(reference);
     for (const groupRef of groups) {
       const parsed = _parseRef(groupRef);
       if (!parsed) continue;
