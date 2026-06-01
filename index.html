@@ -1976,6 +1976,7 @@ function _loadBsbBooks() {
         [b.name, b.commonName, b.title, b.englishName, b.shortName].forEach(n => {
           if (n) _bsbBooks.set(_normBook(n), b.id);
         });
+        if (b.id === 'PSA') _bsbBooks.set(_normBook('Psalm'), b.id);
       });
       return _bsbBooks;
     })
@@ -2117,11 +2118,15 @@ function renderBsbHtml(verses) {
   });
   if (cur.length) groups.push(cur);
 
+  const seenPassages = new Set();
   const body = groups.map(grp => {
     const inner = grp.map(v =>
       `<span class="dv-sv"><sup>${v.n}</sup>${esc(v.text)}</span>`
     ).join(' ');
-    const refLabel = grp[0]?.passageRef ? `<div class="dv-passage-ref">${esc(grp[0].passageRef)}</div>` : '';
+    const passageRef = grp[0]?.passageRef || '';
+    const showRefLabel = passageRef && !seenPassages.has(passageRef);
+    if (passageRef) seenPassages.add(passageRef);
+    const refLabel = showRefLabel ? `<div class="dv-passage-ref">${esc(passageRef)}</div>` : '';
     return `<p class="dv-sp${grp[0]?.passageBreak ? ' dv-passage' : ''}">${refLabel}${inner}</p>`;
   }).join('');
 
