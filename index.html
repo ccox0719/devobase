@@ -1700,24 +1700,34 @@ function clearTagFilter() {
   filterLib();
 }
 
+function handleCardClick(event, id) {
+  if (event.target.closest('.lc-del')) return;
+  const tagSpan = event.target.closest('[data-tag]');
+  if (tagSpan) { applyTagFilter(tagSpan.dataset.tag); return; }
+  openDetailView(id);
+}
+
 function libCardHtml(l) {
   const cardTags = [
     ...(l.themes||[]).slice(0,2).map(t =>
-      `<span class="tag theme${filterTag===t?' active':''}" style="font-size:10px;padding:2px 6px"
-        onclick="event.stopPropagation();applyTagFilter('${safeAttr(t)}')" title="Filter: ${esc(t)}">${esc(t)}</span>`),
+      `<span class="tag theme${filterTag===t?' active':''}" style="font-size:10px;padding:2px 6px;cursor:pointer"
+        data-tag="${esc(t)}" title="Filter: ${esc(t)}">${esc(t)}</span>`),
     ...(l.topics||[]).slice(0,1).map(t =>
-      `<span class="tag topic${filterTag===t?' active':''}" style="font-size:10px;padding:2px 6px"
-        onclick="event.stopPropagation();applyTagFilter('${safeAttr(t)}')" title="Filter: ${esc(t)}">${esc(t)}</span>`),
+      `<span class="tag topic${filterTag===t?' active':''}" style="font-size:10px;padding:2px 6px;cursor:pointer"
+        data-tag="${esc(t)}" title="Filter: ${esc(t)}">${esc(t)}</span>`),
+    ...(l.audience||[]).slice(0,1).map(a =>
+      `<span class="tag aud${filterTag===a?' active':''}" style="font-size:10px;padding:2px 6px;cursor:pointer"
+        data-tag="${esc(a)}" title="Filter: ${esc(a)}">${esc(a)}</span>`),
   ].join('');
   const date = new Date(l.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
   return `
-    <div class="lib-card" onclick="openDetailView('${l.id}')">
+    <div class="lib-card" onclick="handleCardClick(event,'${l.id}')">
       <div class="lc-ref">${esc(l.scripture_ref||'')}</div>
       <div class="lc-title">${esc(l.title||'Untitled')}</div>
       <div class="lc-tags">${cardTags}</div>
       <div class="lc-meta">
         <span>${esc(l.tone||'')} · ${l.estimated_minutes||'?'} min · ${date}</span>
-        <button class="lc-del" onclick="delLesson(event,'${l.id}')">✕</button>
+        <button class="lc-del" onclick="event.stopPropagation();delLesson(event,'${l.id}')">✕</button>
       </div>
     </div>`;
 }
@@ -1728,6 +1738,17 @@ function toggleSeries(slug) {
   if (!lessonsEl) return;
   const expanded = lessonsEl.classList.toggle('expanded');
   if (hdEl) hdEl.classList.toggle('open', expanded);
+}
+
+function handleSeriesHdClick(event, slug, seriesName) {
+  const tagSpan = event.target.closest('[data-tag]');
+  if (tagSpan) { applyTagFilter(tagSpan.dataset.tag); return; }
+  toggleSeries(slug);
+}
+
+function handleSeriesMetaClick(event) {
+  const tagSpan = event.target.closest('[data-tag]');
+  if (tagSpan) { applyTagFilter(tagSpan.dataset.tag); }
 }
 
 function renderLib(lessons) {
@@ -1763,22 +1784,21 @@ function renderLib(lessons) {
       const themes = [...new Set(sLessons.flatMap(l => l.themes||[]))].slice(0,6);
       const bookHtml  = books.map(b => `<span class="tag book" style="font-size:10px;padding:2px 6px">${esc(b)}</span>`).join('');
       const themeHtml = themes.map(t =>
-        `<span class="tag theme${filterTag===t?' active':''}" style="font-size:10px;padding:2px 6px"
-          onclick="event.stopPropagation();applyTagFilter('${safeAttr(t)}')" title="Filter: ${esc(t)}">${esc(t)}</span>`
+        `<span class="tag theme${filterTag===t?' active':''}" style="font-size:10px;padding:2px 6px;cursor:pointer"
+          data-tag="${esc(t)}" title="Filter: ${esc(t)}">${esc(t)}</span>`
       ).join('');
       const isSeriesFilter = filterTag === sName;
       html += `
         <div class="series-card">
-          <div class="sc-hd" id="${slug}-hd" onclick="toggleSeries('${slug}')">
+          <div class="sc-hd" id="${slug}-hd" onclick="handleSeriesHdClick(event,'${slug}','${safeAttr(sName)}')">
             <div class="sc-name">
               <span class="sc-name-link${isSeriesFilter?' active':''}"
-                onclick="event.stopPropagation();applyTagFilter('${safeAttr(sName)}')"
-                title="Filter by series">${esc(sName)}</span>
+                data-tag="${esc(sName)}" title="Filter by series">${esc(sName)}</span>
             </div>
             <span class="sc-badge">${sLessons.length} lesson${sLessons.length!==1?'s':''}</span>
             <span class="sc-toggle">▸</span>
           </div>
-          ${bookHtml||themeHtml ? `<div class="sc-meta">${bookHtml}${themeHtml}</div>` : ''}
+          ${bookHtml||themeHtml ? `<div class="sc-meta" onclick="handleSeriesMetaClick(event)">${bookHtml}${themeHtml}</div>` : ''}
           <div class="sc-lessons" id="${slug}-lessons">
             <div class="sc-inner-grid">${sLessons.map(l => libCardHtml(l)).join('')}</div>
           </div>
@@ -2220,6 +2240,17 @@ function enterEditMode() {
         </div>
       </div>
 
+      <div class="dv-edit-row">
+        <div class="dv-edit-field">
+          <div class="dv-edit-label">Series Name</div>
+          <input class="dv-edit-input" id="edit-series-name" value="${esc(l.series_name || '')}" placeholder="e.g. Sermon on the Mount" />
+        </div>
+        <div class="dv-edit-field">
+          <div class="dv-edit-label">Series Order</div>
+          <input class="dv-edit-input" type="number" id="edit-series-order" value="${l.series_order || ''}" min="1" placeholder="1" />
+        </div>
+      </div>
+
       <div class="dv-edit-field">
         <div class="dv-edit-label">Leader Notes</div>
         <textarea class="dv-edit-ta" id="edit-notes" style="min-height:100px">${esc(l.leading_notes || '')}</textarea>
@@ -2282,6 +2313,8 @@ async function saveEditedLesson() {
     themes:            _editTags.themes,
     topics:            _editTags.topics,
     audience:          _editTags.audience,
+    series_name:       document.getElementById('edit-series-name').value.trim() || null,
+    series_order:      parseInt(document.getElementById('edit-series-order').value) || null,
   };
 
   // Re-derive scripture_book from updated ref

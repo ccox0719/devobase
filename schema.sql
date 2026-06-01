@@ -57,8 +57,12 @@ create policy "Users can delete own lessons"
   for delete
   using (auth.uid() = user_id);
 
-create index if not exists idx_dl_user_id       on devotional_lessons (user_id);
+alter table devotional_lessons add column if not exists series_name  text;
+alter table devotional_lessons add column if not exists series_order integer;
+
+create index if not exists idx_dl_user_id        on devotional_lessons (user_id);
 create index if not exists idx_dl_scripture_book on devotional_lessons (scripture_book);
 create index if not exists idx_dl_created_at     on devotional_lessons (created_at desc);
 create index if not exists idx_dl_themes         on devotional_lessons using gin (themes);
 create index if not exists idx_dl_topics         on devotional_lessons using gin (topics);
+create index if not exists idx_dl_series         on devotional_lessons (series_name);
