@@ -247,6 +247,64 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
 @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 .fade-in { animation: fadeUp .3s ease both; }
 
+/* ── Search wrap + tag filter pill ───────────────────────────────────────── */
+.search-wrap { display: flex; align-items: center; gap: 6px; flex: 1; }
+.search-wrap .search-in { flex: 1; width: auto; }
+.tag-filter-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--gold); color: #fff; border-radius: 20px;
+  padding: 4px 10px; font-size: 11px; font-weight: 600; letter-spacing: .04em;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0; user-select: none;
+}
+.tag-filter-pill:hover { background: #8c6118; }
+
+/* ── Clickable tags ───────────────────────────────────────────────────────── */
+.tag.theme, .tag.topic, .tag.aud { cursor: pointer; }
+.tag.active { border-color: var(--gold) !important; box-shadow: 0 1px 6px rgba(176,125,42,0.4); transform: translateY(-1px); }
+
+/* ── Library section header ───────────────────────────────────────────────── */
+.lib-section-hd {
+  grid-column: 1 / -1; font-size: 9.5px; font-weight: 700;
+  letter-spacing: .20em; text-transform: uppercase; color: var(--ink3);
+  padding: 6px 0 10px; border-bottom: 1px solid var(--divider);
+  display: flex; align-items: center; gap: 8px;
+}
+.lib-section-hd::before { content: '§'; color: var(--gold); font-family: 'Cormorant Garamond', serif; font-size: 14px; font-weight: 300; letter-spacing: 0; }
+
+/* ── Series card ──────────────────────────────────────────────────────────── */
+.series-card {
+  grid-column: 1 / -1; background: var(--surface);
+  border: 1px solid var(--border); border-left: 4px solid var(--sage);
+  border-radius: var(--r); box-shadow: 0 1px 8px var(--shadow);
+}
+.sc-hd {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 16px 11px; cursor: pointer; user-select: none;
+}
+.sc-hd:hover { background: rgba(78,99,71,0.04); }
+.sc-name {
+  flex: 1; font-family: 'Cormorant Garamond', serif; font-size: 20px;
+  font-weight: 400; color: var(--ink); line-height: 1.2;
+}
+.sc-name-link {
+  cursor: pointer; border-bottom: 1px dotted transparent; transition: border-color .15s;
+}
+.sc-name-link:hover { border-bottom-color: var(--sage); color: var(--sage); }
+.sc-badge {
+  background: var(--sage); color: #fff; font-size: 10px; font-weight: 600;
+  letter-spacing: .08em; padding: 2px 8px; border-radius: 20px; white-space: nowrap; flex-shrink: 0;
+}
+.sc-toggle { color: var(--ink3); font-size: 14px; transition: transform .25s; flex-shrink: 0; }
+.sc-hd.open .sc-toggle { transform: rotate(90deg); }
+.sc-meta { padding: 4px 16px 10px; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.sc-lessons { overflow: hidden; max-height: 0; transition: max-height .35s ease; }
+.sc-lessons.expanded { max-height: 12000px; }
+.sc-inner-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px; padding: 14px 16px 16px; border-top: 1px solid var(--divider);
+}
+.sc-inner-grid .lib-card { box-shadow: none; }
+
 /* ── Account Menu ─────────────────────────────────────────────────────────── */
 .acct-menu-wrap { position: relative; }
 .acct-btn {
@@ -603,8 +661,12 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
     align-items: stretch;
   }
 
-  .search-in {
+  .search-wrap {
     grid-column: 1 / -1;
+    flex-wrap: wrap;
+  }
+
+  .search-wrap .search-in {
     width: 100%;
     min-height: 42px;
     font-size: 14px;
@@ -805,7 +867,10 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
         <span class="lib-count" id="libCount">0</span>
       </div>
       <div class="lib-controls">
-        <input class="search-in" id="searchIn" type="text" placeholder="Search…" oninput="filterLib()" />
+        <div class="search-wrap">
+          <input class="search-in" id="searchIn" type="text" placeholder="Search…" oninput="filterLib()" />
+          <span class="tag-filter-pill" id="tagFilterPill" style="display:none" onclick="clearTagFilter()">✕ Clear filter</span>
+        </div>
         <button class="new-lesson-btn" onclick="openParseModal()">+ New Lesson</button>
         <div class="acct-menu-wrap" id="acctMenuWrap">
           <button class="acct-btn" id="acctBtn" onclick="toggleAccountMenu()">Sign In ▾</button>
@@ -1037,9 +1102,10 @@ function parseLesson() {
 
   // ── Scripture reference ───────────────────────────────────────────────────
   // Match "Book ch:v" or "Book ch:v–v" patterns
+  const refGroupPattern = '(' + BIBLE_BOOKS.map(b => b.replace(/\s/g, '\\s')).join('|') + ')' +
+    '\\s+(\\d+):(\\d+(?:[–\\-—]\\d+)?(?:,\\s*\\d+)*)';
   const refPattern = new RegExp(
-    '(' + BIBLE_BOOKS.map(b => b.replace(/\s/g, '\\s')).join('|') + ')' +
-    '\\s+(\\d+):(\\d+(?:[–\\-—]\\d+)?(?:,\\s*\\d+)*)',
+    refGroupPattern + '(?:\\s*;\\s*' + refGroupPattern + ')*',
     'i'
   );
   const refMatch = (explicitRef || raw).match(refPattern);
@@ -1162,6 +1228,10 @@ function parseLesson() {
 /* ════════════════════════════════════════════════════════════════════════════
    RENDER RESULT
    ════════════════════════════════════════════════════════════════════════════ */
+function safeAttr(v) {
+  return (v||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+
 function renderResult(d) {
   const themeHTML    = d.themes.map(t  => tagEl(t, 'theme',  'remove')).join('');
   const topicHTML    = d.topics.map(t  => tagEl(t, 'topic',  'remove')).join('');
@@ -1185,6 +1255,18 @@ function renderResult(d) {
       <div class="mf">
         <div class="ml">Tone</div>
         <div class="mv edit" contenteditable="true" oninput="updateField('tone',this.innerText)">${esc(d.tone)}</div>
+      </div>
+      <div class="mf">
+        <div class="ml">Series Name</div>
+        <input id="parsedSeriesName" type="text" placeholder="optional — e.g. Sermon on the Mount"
+          oninput="updateField('seriesName',this.value)"
+          style="display:block;width:100%;border:none;border-bottom:1px dashed var(--border);background:transparent;outline:none;font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:400;color:var(--ink);padding:2px 0;" />
+      </div>
+      <div class="mf">
+        <div class="ml">Series Order</div>
+        <input id="parsedSeriesOrder" type="number" min="1" placeholder="1"
+          oninput="updateField('seriesOrder',this.value)"
+          style="display:block;width:100%;border:none;border-bottom:1px dashed var(--border);background:transparent;outline:none;font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:400;color:var(--ink);padding:2px 0;" />
       </div>
     </div>
 
@@ -1246,7 +1328,7 @@ function tagEl(text, cls, action) {
   if (action === 'remove') {
     return `<span class="tag ${cls} remove" title="Click to remove" onclick="removeTag(this,'${cls}')">${esc(text)} ×</span>`;
   }
-  return `<span class="tag ${cls}">${esc(text)}</span>`;
+  return `<span class="tag ${cls}" onclick="applyTagFilter('${safeAttr(text)}')" title="Filter: ${esc(text)}" style="cursor:pointer">${esc(text)}</span>`;
 }
 
 function removeTag(el, cls) {
@@ -1299,6 +1381,7 @@ function copyJSON() {
    ════════════════════════════════════════════════════════════════════════════ */
 let sb = null;
 let allLessons = [];
+let filterTag = null;
 let currentUser = null;
 let authSubscription = null;
 const CFG_KEY = 'devot_cfg_v2';
@@ -1509,7 +1592,7 @@ async function saveLesson() {
   if (!sb) {
     // Offline fallback — save to localStorage
     const lib = JSON.parse(localStorage.getItem('devot_local') || '[]');
-    lib.unshift({ ...d, id: Date.now(), created_at: new Date().toISOString() });
+    lib.unshift({ ...d, id: Date.now(), created_at: new Date().toISOString(), series_name: d.seriesName||null, series_order: d.seriesOrder?parseInt(d.seriesOrder):null });
     localStorage.setItem('devot_local', JSON.stringify(lib));
     allLessons = lib;
     showToast('Saved locally (no Supabase)');
@@ -1543,6 +1626,8 @@ async function saveLesson() {
     estimated_minutes: d.estimatedMinutes || null,
     leading_notes:     d.leadingNotes || null,
     raw_text:          d.rawText || null,
+    series_name:       d.seriesName || null,
+    series_order:      d.seriesOrder ? parseInt(d.seriesOrder) : null,
   });
 
   document.getElementById('saveBtn').disabled = false;
@@ -1576,15 +1661,73 @@ async function loadLibrary() {
 }
 
 function filterLib() {
-  const q = document.getElementById('searchIn').value.toLowerCase();
-  if (!q) { renderLib(allLessons); return; }
-  renderLib(allLessons.filter(l =>
-    (l.title||'').toLowerCase().includes(q) ||
-    (l.scripture_ref||'').toLowerCase().includes(q) ||
-    (l.themes||[]).some(t => t.toLowerCase().includes(q)) ||
-    (l.topics||[]).some(t => t.toLowerCase().includes(q)) ||
-    (l.tone||'').toLowerCase().includes(q)
-  ));
+  const q = document.getElementById('searchIn').value.toLowerCase().trim();
+  if (!q && !filterTag) { renderLib(allLessons); return; }
+  renderLib(allLessons.filter(l => {
+    const matchSearch = !q || (
+      (l.title||'').toLowerCase().includes(q) ||
+      (l.scripture_ref||'').toLowerCase().includes(q) ||
+      (l.themes||[]).some(t => t.toLowerCase().includes(q)) ||
+      (l.topics||[]).some(t => t.toLowerCase().includes(q)) ||
+      (l.audience||[]).some(t => t.toLowerCase().includes(q)) ||
+      (l.tone||'').toLowerCase().includes(q) ||
+      (l.series_name||'').toLowerCase().includes(q)
+    );
+    const matchTag = !filterTag || (
+      (l.themes||[]).includes(filterTag) ||
+      (l.topics||[]).includes(filterTag) ||
+      (l.audience||[]).includes(filterTag) ||
+      l.series_name === filterTag
+    );
+    return matchSearch && matchTag;
+  }));
+}
+
+function applyTagFilter(val) {
+  if (filterTag === val) { clearTagFilter(); return; }
+  filterTag = val;
+  document.getElementById('searchIn').value = val;
+  const pill = document.getElementById('tagFilterPill');
+  if (pill) pill.style.display = 'inline-flex';
+  filterLib();
+}
+
+function clearTagFilter() {
+  filterTag = null;
+  document.getElementById('searchIn').value = '';
+  const pill = document.getElementById('tagFilterPill');
+  if (pill) pill.style.display = 'none';
+  filterLib();
+}
+
+function libCardHtml(l) {
+  const cardTags = [
+    ...(l.themes||[]).slice(0,2).map(t =>
+      `<span class="tag theme${filterTag===t?' active':''}" style="font-size:10px;padding:2px 6px"
+        onclick="event.stopPropagation();applyTagFilter('${safeAttr(t)}')" title="Filter: ${esc(t)}">${esc(t)}</span>`),
+    ...(l.topics||[]).slice(0,1).map(t =>
+      `<span class="tag topic${filterTag===t?' active':''}" style="font-size:10px;padding:2px 6px"
+        onclick="event.stopPropagation();applyTagFilter('${safeAttr(t)}')" title="Filter: ${esc(t)}">${esc(t)}</span>`),
+  ].join('');
+  const date = new Date(l.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  return `
+    <div class="lib-card" onclick="openDetailView('${l.id}')">
+      <div class="lc-ref">${esc(l.scripture_ref||'')}</div>
+      <div class="lc-title">${esc(l.title||'Untitled')}</div>
+      <div class="lc-tags">${cardTags}</div>
+      <div class="lc-meta">
+        <span>${esc(l.tone||'')} · ${l.estimated_minutes||'?'} min · ${date}</span>
+        <button class="lc-del" onclick="delLesson(event,'${l.id}')">✕</button>
+      </div>
+    </div>`;
+}
+
+function toggleSeries(slug) {
+  const lessonsEl = document.getElementById(slug + '-lessons');
+  const hdEl      = document.getElementById(slug + '-hd');
+  if (!lessonsEl) return;
+  const expanded = lessonsEl.classList.toggle('expanded');
+  if (hdEl) hdEl.classList.toggle('open', expanded);
 }
 
 function renderLib(lessons) {
@@ -1594,20 +1737,61 @@ function renderLib(lessons) {
     grid.innerHTML = `<div class="lib-empty"><p>${allLessons.length ? 'No results match your search' : 'No lessons saved yet'}</p></div>`;
     return;
   }
-  grid.innerHTML = lessons.map(l => {
-    const tags = (l.themes||[]).slice(0,3).map(t => `<span class="tag theme" style="font-size:10px;padding:2px 6px">${esc(t)}</span>`).join('');
-    const date = new Date(l.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-    return `
-      <div class="lib-card" onclick="openDetailView('${l.id}')">
-        <div class="lc-ref">${esc(l.scripture_ref||'')}</div>
-        <div class="lc-title">${esc(l.title||'Untitled')}</div>
-        <div class="lc-tags">${tags}</div>
-        <div class="lc-meta">
-          <span>${esc(l.tone||'')} · ${l.estimated_minutes||'?'} min · ${date}</span>
-          <button class="lc-del" onclick="delLesson(event,'${l.id}')">✕</button>
-        </div>
-      </div>`;
-  }).join('');
+
+  const seriesMap = new Map();
+  const standalone = [];
+  lessons.forEach(l => {
+    if (l.series_name) {
+      if (!seriesMap.has(l.series_name)) seriesMap.set(l.series_name, []);
+      seriesMap.get(l.series_name).push(l);
+    } else {
+      standalone.push(l);
+    }
+  });
+
+  let html = '';
+
+  if (seriesMap.size > 0) {
+    html += `<div class="lib-section-hd">Series</div>`;
+    seriesMap.forEach((sLessons, sName) => {
+      sLessons.sort((a, b) =>
+        (a.series_order||9999) - (b.series_order||9999) ||
+        new Date(a.created_at) - new Date(b.created_at)
+      );
+      const slug = 'sc-' + sName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+      const books  = [...new Set(sLessons.map(l => l.scripture_book).filter(Boolean))];
+      const themes = [...new Set(sLessons.flatMap(l => l.themes||[]))].slice(0,6);
+      const bookHtml  = books.map(b => `<span class="tag book" style="font-size:10px;padding:2px 6px">${esc(b)}</span>`).join('');
+      const themeHtml = themes.map(t =>
+        `<span class="tag theme${filterTag===t?' active':''}" style="font-size:10px;padding:2px 6px"
+          onclick="event.stopPropagation();applyTagFilter('${safeAttr(t)}')" title="Filter: ${esc(t)}">${esc(t)}</span>`
+      ).join('');
+      const isSeriesFilter = filterTag === sName;
+      html += `
+        <div class="series-card">
+          <div class="sc-hd" id="${slug}-hd" onclick="toggleSeries('${slug}')">
+            <div class="sc-name">
+              <span class="sc-name-link${isSeriesFilter?' active':''}"
+                onclick="event.stopPropagation();applyTagFilter('${safeAttr(sName)}')"
+                title="Filter by series">${esc(sName)}</span>
+            </div>
+            <span class="sc-badge">${sLessons.length} lesson${sLessons.length!==1?'s':''}</span>
+            <span class="sc-toggle">▸</span>
+          </div>
+          ${bookHtml||themeHtml ? `<div class="sc-meta">${bookHtml}${themeHtml}</div>` : ''}
+          <div class="sc-lessons" id="${slug}-lessons">
+            <div class="sc-inner-grid">${sLessons.map(l => libCardHtml(l)).join('')}</div>
+          </div>
+        </div>`;
+    });
+  }
+
+  if (standalone.length > 0) {
+    if (seriesMap.size > 0) html += `<div class="lib-section-hd">Standalone Lessons</div>`;
+    html += standalone.map(l => libCardHtml(l)).join('');
+  }
+
+  grid.innerHTML = html;
 }
 
 function loadCard(id) {
@@ -1727,36 +1911,51 @@ function _fixSpacing(text) {
     .replace(/\b(LORD|GOD)([A-Za-z])/g, '$1 $2');
 }
 
+function _splitRefGroups(reference) {
+  return (reference || '')
+    .split(';')
+    .map(r => r.trim())
+    .filter(Boolean);
+}
+
 async function fetchBsbVerses(reference) {
   if (!reference) return null;
   if (_bsbCache.has(reference)) return _bsbCache.get(reference);
 
-  const parsed = _parseRef(reference);
-  if (!parsed) { _bsbCache.set(reference, null); return null; }
-
   const lookup = await _loadBsbBooks();
   if (!lookup) { _bsbCache.set(reference, null); return null; }
 
-  const bookId = lookup.get(_normBook(parsed.bookName));
-  if (!bookId) { _bsbCache.set(reference, null); return null; }
-
   try {
-    const res  = await fetch(`${BSB_BASE}/${BSB_TR}/${bookId}/${parsed.chapter}.json`);
-    if (!res.ok) throw new Error('chapter fetch failed');
-    const data = await res.json();
-    const content = data?.chapter?.content;
-    if (!Array.isArray(content)) { _bsbCache.set(reference, null); return null; }
-
-    let pendingParagraph = false;
     const verses = [];
-    content.forEach(block => {
-      if (block?.type === 'line_break') { pendingParagraph = true; return; }
-      if (block?.type !== 'verse') return;
-      const n = Number(block.number);
-      if (Number.isNaN(n) || n < parsed.start || n > parsed.end) return;
-      const text = _fixSpacing(_flatTokens(block.content));
-      if (text) { verses.push({ n, text, newPara: pendingParagraph }); pendingParagraph = false; }
-    });
+    const groups = _splitRefGroups(reference);
+    for (const groupRef of groups) {
+      const parsed = _parseRef(groupRef);
+      if (!parsed) continue;
+
+      const bookId = lookup.get(_normBook(parsed.bookName));
+      if (!bookId) continue;
+
+      const res  = await fetch(`${BSB_BASE}/${BSB_TR}/${bookId}/${parsed.chapter}.json`);
+      if (!res.ok) continue;
+
+      const data = await res.json();
+      const content = data?.chapter?.content;
+      if (!Array.isArray(content)) continue;
+
+      let pendingParagraph = false;
+      let startedGroup = false;
+      content.forEach(block => {
+        if (block?.type === 'line_break') { pendingParagraph = true; return; }
+        if (block?.type !== 'verse') return;
+        const n = Number(block.number);
+        if (Number.isNaN(n) || n < parsed.start || n > parsed.end) return;
+        const text = _fixSpacing(_flatTokens(block.content));
+        if (!text) return;
+        verses.push({ n, text, newPara: pendingParagraph || (!startedGroup && verses.length > 0) });
+        pendingParagraph = false;
+        startedGroup = true;
+      });
+    }
 
     const result = verses.length ? verses : null;
     _bsbCache.set(reference, result);
@@ -1839,10 +2038,10 @@ function openDetailView(id) {
   _currentLesson = l;
 
   const sec       = parseRawSections(l.raw_text || '');
-  const themeTags = (l.themes   || []).map(t => `<span class="tag theme">${esc(t)}</span>`).join('');
-  const topicTags = (l.topics   || []).map(t => `<span class="tag topic">${esc(t)}</span>`).join('');
-  const audTags   = (l.audience || []).map(a => `<span class="tag aud">${esc(a)}</span>`).join('');
-  const bookTag   = l.scripture_book ? `<span class="tag book">${esc(l.scripture_book)}</span>` : '';
+  const themeTags = (l.themes   || []).map(t => `<span class="tag theme" onclick="applyTagFilter('${safeAttr(t)}')" title="Filter: ${esc(t)}" style="cursor:pointer">${esc(t)}</span>`).join('');
+  const topicTags = (l.topics   || []).map(t => `<span class="tag topic" onclick="applyTagFilter('${safeAttr(t)}')" title="Filter: ${esc(t)}" style="cursor:pointer">${esc(t)}</span>`).join('');
+  const audTags   = (l.audience || []).map(a => `<span class="tag aud"   onclick="applyTagFilter('${safeAttr(a)}')" title="Filter: ${esc(a)}" style="cursor:pointer">${esc(a)}</span>`).join('');
+  const bookTag   = l.scripture_book ? `<span class="tag book" onclick="applyTagFilter('${safeAttr(l.scripture_book)}')" title="Filter: ${esc(l.scripture_book)}" style="cursor:pointer">${esc(l.scripture_book)}</span>` : '';
 
   const devotParas = sec.paragraphs.length ? sec.paragraphs : (l.summary ? [l.summary] : []);
   const devotHTML  = devotParas.length
@@ -1916,6 +2115,7 @@ function openDetailView(id) {
         ${l.tone ? `<span class="dv-meta-pill">${esc(l.tone)}</span>` : ''}
         ${l.has_application ? `<span class="dv-meta-pill">✓ Application</span>` : ''}
         ${l.has_prayer      ? `<span class="dv-meta-pill">✓ Prayer</span>`      : ''}
+        ${l.series_name ? `<span class="dv-meta-pill" onclick="closeDetailView();applyTagFilter('${safeAttr(l.series_name)}')" style="cursor:pointer;border-color:var(--sage);color:var(--sage)" title="Filter by series">§ ${esc(l.series_name)}${l.series_order ? ' #' + l.series_order : ''}</span>` : ''}
       </div>
     </div>`;
 
