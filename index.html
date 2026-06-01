@@ -437,6 +437,15 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
 .dv-sp:last-of-type { margin-bottom: 0; }
 .dv-passage { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--divider); }
 .dv-passage:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.dv-passage-ref {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 8px;
+  opacity: .85;
+}
 .dv-sv { margin-right: 3px; }
 .dv-bsb-credit { margin-top: 12px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink3); opacity: .5; }
 .dv-edit-btn {
@@ -1078,6 +1087,37 @@ function readLessonField(raw, labels) {
   return '';
 }
 
+function toTitleCase(text) {
+  const value = (text || '').trim().replace(/\s+/g, ' ');
+  if (!value) return '';
+
+  const smallWords = new Set(['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'from', 'in', 'into', 'nor', 'of', 'on', 'or', 'over', 'per', 'the', 'to', 'via', 'with']);
+
+  return value
+    .toLowerCase()
+    .split(' ')
+    .map((word, index, words) => {
+      if (!word) return word;
+      const parts = word.split(/([-/])/);
+      const cased = parts.map(part => {
+        if (part === '-' || part === '/') return part;
+        if (!part) return part;
+        const cleaned = part.replace(/^([("'“‘\[]*)(.*?)([)"'”’\]]*)$/, '$1$2$3');
+        const m = cleaned.match(/^([("'“‘\[]*)(.*?)([)"'”’\]]*)$/);
+        const prefix = m ? m[1] : '';
+        const core = m ? m[2] : cleaned;
+        const suffix = m ? m[3] : '';
+        if (!core) return part;
+        if (/^[ivxlcdm]+$/.test(core)) return prefix + core.toUpperCase() + suffix;
+        if (/^[a-z]\.?$/.test(core)) return prefix + core.toUpperCase() + suffix;
+        return prefix + core.charAt(0).toUpperCase() + core.slice(1) + suffix;
+      }).join('');
+      if (index > 0 && index < words.length - 1 && smallWords.has(cased.toLowerCase())) return cased.toLowerCase();
+      return cased;
+    })
+    .join(' ');
+}
+
 function parseLesson() {
   const raw = document.getElementById('lessonInput').value.trim();
   if (!raw) { showToast('Paste a lesson first', true); return; }
@@ -1092,25 +1132,25 @@ function parseLesson() {
 
   // ── Title ────────────────────────────────────────────────────────────────
   // First non-empty line that isn't a scripture ref or "A Devotional from..."
-  result.title = explicitTitle || (lines.find(l =>
+  result.title = toTitleCase(explicitTitle || (lines.find(l =>
     l.length > 2 &&
     !/^a devotional/i.test(l) &&
     !/^(title|series|scripture|passage|key verse|key passage|memory verse)\s*:/i.test(l) &&
     !/^\d+:\d+/.test(l)
-  ) || 'Untitled').replace(/^#+\s*/, '');
+  ) || 'Untitled').replace(/^#+\s*/, ''));
 
   // ── Series / Subtitle ────────────────────────────────────────────────────
   const seriesText = explicitSeries || readLessonField(raw, ['Series Name']);
   if (seriesText) {
     const seriesMatch = seriesText.match(/^(.*?)(?:\s+(\d+))?$/);
-    result.seriesName = seriesMatch ? seriesMatch[1].trim() : seriesText.trim();
+    result.seriesName = toTitleCase(seriesMatch ? seriesMatch[1].trim() : seriesText.trim());
     result.seriesOrder = seriesMatch && seriesMatch[2] ? Number(seriesMatch[2]) : null;
-    result.subtitle = seriesText.trim();
+    result.subtitle = toTitleCase(seriesText.trim());
   } else {
     result.seriesName = '';
     result.seriesOrder = null;
     const subMatch = raw.match(/A Devotional(?:\s+from)?\s+([^\n]+)/i);
-    result.subtitle = subMatch ? subMatch[1].trim() : '';
+    result.subtitle = subMatch ? toTitleCase(subMatch[1].trim()) : '';
   }
 
   // ── Scripture reference ───────────────────────────────────────────────────
@@ -2051,6 +2091,7 @@ async function fetchBsbVerses(reference) {
         text,
         newPara: pendingParagraph || (!startedGroup && verses.length > 0),
         passageBreak: !groupIsFirst && !startedGroup,
+        passageRef: groupRef,
       });
       pendingParagraph = false;
       startedGroup = true;
@@ -2080,7 +2121,8 @@ function renderBsbHtml(verses) {
     const inner = grp.map(v =>
       `<span class="dv-sv"><sup>${v.n}</sup>${esc(v.text)}</span>`
     ).join(' ');
-    return `<p class="dv-sp${grp[0]?.passageBreak ? ' dv-passage' : ''}">${inner}</p>`;
+    const refLabel = grp[0]?.passageRef ? `<div class="dv-passage-ref">${esc(grp[0].passageRef)}</div>` : '';
+    return `<p class="dv-sp${grp[0]?.passageBreak ? ' dv-passage' : ''}">${refLabel}${inner}</p>`;
   }).join('');
 
   return `${body}<div class="dv-bsb-credit">Berean Standard Bible</div>`;
@@ -2449,7 +2491,8 @@ function buildLeaderSteps(lesson, sec, scriptureVerses = null) {
   steps.push({ type: 'intro', title: lesson.title, ref: lesson.scripture_ref, minutes: lesson.estimated_minutes });
   if (lesson.key_verse) {
     steps.push({ type: 'verse', label: 'Key Verse', text: lesson.key_verse, ref: lesson.key_verse_ref || lesson.scripture_ref });
-  } else if (scriptureVerses?.length) {
+  }
+  if (scriptureVerses?.length) {
     steps.push({ type: 'verse', label: 'Scripture', verses: scriptureVerses, ref: lesson.scripture_ref });
   }
   const paras = sec.paragraphs.length ? sec.paragraphs : (lesson.summary ? [lesson.summary] : []);
@@ -2526,7 +2569,7 @@ function renderLeaderStep() {
 async function enterLeaderMode() {
   if (!_currentLesson) return;
   const sec = parseRawSections(_currentLesson.raw_text || '');
-  const scriptureVerses = _currentLesson.key_verse ? null : await fetchBsbVerses(_currentLesson.scripture_ref);
+  const scriptureVerses = await fetchBsbVerses(_currentLesson.scripture_ref);
   _lmSteps = buildLeaderSteps(_currentLesson, sec, scriptureVerses);
   _lmIndex    = 0;
   _lmLessonId = _currentLesson.id;
