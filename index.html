@@ -1101,13 +1101,11 @@ function parseLesson() {
   result.subtitle = subMatch ? subMatch[1].trim() : '';
 
   // ── Scripture reference ───────────────────────────────────────────────────
-  // Match "Book ch:v" or "Book ch:v–v" patterns
-  const refGroupPattern = '(' + BIBLE_BOOKS.map(b => b.replace(/\s/g, '\\s')).join('|') + ')' +
-    '\\s+(\\d+):(\\d+(?:[–\\-—]\\d+)?(?:,\\s*\\d+)*)';
-  const refPattern = new RegExp(
-    refGroupPattern + '(?:\\s*;\\s*' + refGroupPattern + ')*',
-    'i'
-  );
+  // Match one or more passage chunks, including shorthand follow-ups after commas.
+  const bookPattern = '(' + BIBLE_BOOKS.map(b => b.replace(/\s/g, '\\s')).join('|') + ')';
+  const refChunkPattern = bookPattern + '\\s+(\\d+):(\\d+(?:[–\\-—]\\d+)?)';
+  const refTailPattern = '(?:\\s*[;,]\\s*(?:' + bookPattern + '\\s+)?(?:\\d+:)?\\d+(?:[–\\-—]\\d+)?)';
+  const refPattern = new RegExp(refChunkPattern + refTailPattern + '*', 'i');
   const refMatch = (explicitRef || raw).match(refPattern);
   if (refMatch) {
     result.scriptureRef  = _normalizeRefGroups(refMatch[0].replace(/\s+/g, ' ').trim()).join('; ');
