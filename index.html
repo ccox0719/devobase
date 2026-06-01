@@ -1692,6 +1692,21 @@ function applyTagFilter(val) {
   filterLib();
 }
 
+function openLibraryTag(tag) {
+  if (!tag) return;
+  closeDetailView();
+  filterTag = tag;
+  const search = document.getElementById('searchIn');
+  if (search) search.value = tag;
+  const pill = document.getElementById('tagFilterPill');
+  if (pill) pill.style.display = 'inline-flex';
+  filterLib();
+  const libSection = document.querySelector('.lib-section');
+  if (libSection) {
+    libSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
 function clearTagFilter() {
   filterTag = null;
   document.getElementById('searchIn').value = '';
@@ -2058,10 +2073,10 @@ function openDetailView(id) {
   _currentLesson = l;
 
   const sec       = parseRawSections(l.raw_text || '');
-  const themeTags = (l.themes   || []).map(t => `<span class="tag theme" onclick="applyTagFilter('${safeAttr(t)}')" title="Filter: ${esc(t)}" style="cursor:pointer">${esc(t)}</span>`).join('');
-  const topicTags = (l.topics   || []).map(t => `<span class="tag topic" onclick="applyTagFilter('${safeAttr(t)}')" title="Filter: ${esc(t)}" style="cursor:pointer">${esc(t)}</span>`).join('');
-  const audTags   = (l.audience || []).map(a => `<span class="tag aud"   onclick="applyTagFilter('${safeAttr(a)}')" title="Filter: ${esc(a)}" style="cursor:pointer">${esc(a)}</span>`).join('');
-  const bookTag   = l.scripture_book ? `<span class="tag book" onclick="applyTagFilter('${safeAttr(l.scripture_book)}')" title="Filter: ${esc(l.scripture_book)}" style="cursor:pointer">${esc(l.scripture_book)}</span>` : '';
+  const themeTags = (l.themes   || []).map(t => `<span class="tag theme" onclick="openLibraryTag('${safeAttr(t)}')" title="Filter in library: ${esc(t)}" style="cursor:pointer">${esc(t)}</span>`).join('');
+  const topicTags = (l.topics   || []).map(t => `<span class="tag topic" onclick="openLibraryTag('${safeAttr(t)}')" title="Filter in library: ${esc(t)}" style="cursor:pointer">${esc(t)}</span>`).join('');
+  const audTags   = (l.audience || []).map(a => `<span class="tag aud"   onclick="openLibraryTag('${safeAttr(a)}')" title="Filter in library: ${esc(a)}" style="cursor:pointer">${esc(a)}</span>`).join('');
+  const bookTag   = l.scripture_book ? `<span class="tag book" onclick="openLibraryTag('${safeAttr(l.scripture_book)}')" title="Filter in library: ${esc(l.scripture_book)}" style="cursor:pointer">${esc(l.scripture_book)}</span>` : '';
 
   const devotParas = sec.paragraphs.length ? sec.paragraphs : (l.summary ? [l.summary] : []);
   const devotHTML  = devotParas.length
@@ -2135,7 +2150,7 @@ function openDetailView(id) {
         ${l.tone ? `<span class="dv-meta-pill">${esc(l.tone)}</span>` : ''}
         ${l.has_application ? `<span class="dv-meta-pill">✓ Application</span>` : ''}
         ${l.has_prayer      ? `<span class="dv-meta-pill">✓ Prayer</span>`      : ''}
-        ${l.series_name ? `<span class="dv-meta-pill" onclick="closeDetailView();applyTagFilter('${safeAttr(l.series_name)}')" style="cursor:pointer;border-color:var(--sage);color:var(--sage)" title="Filter by series">§ ${esc(l.series_name)}${l.series_order ? ' #' + l.series_order : ''}</span>` : ''}
+        ${l.series_name ? `<span class="dv-meta-pill" onclick="openLibraryTag('${safeAttr(l.series_name)}')" style="cursor:pointer;border-color:var(--sage);color:var(--sage)" title="Filter in library by series">§ ${esc(l.series_name)}${l.series_order ? ' #' + l.series_order : ''}</span>` : ''}
       </div>
     </div>`;
 
