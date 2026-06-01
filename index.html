@@ -1106,7 +1106,7 @@ function parseLesson() {
   const refChunkPattern = bookPattern + '\\s+(\\d+):(\\d+(?:[–\\-—]\\d+)?)';
   const refTailPattern = '(?:\\s*[;,]\\s*(?:' + bookPattern + '\\s+)?(?:\\d+:)?\\d+(?:[–\\-—]\\d+)?)';
   const refPattern = new RegExp(refChunkPattern + refTailPattern + '*', 'i');
-  const refMatch = (explicitRef || raw).match(refPattern);
+  const refMatch = _normalizeRefText(explicitRef || raw).match(refPattern);
   if (refMatch) {
     result.scriptureRef  = _normalizeRefGroups(refMatch[0].replace(/\s+/g, ' ').trim()).join('; ');
     result.scriptureBook = BIBLE_BOOKS.find(b => b.toLowerCase() === refMatch[1].toLowerCase()) || refMatch[1];
@@ -1951,8 +1951,15 @@ function _splitRefGroups(reference) {
     .filter(Boolean);
 }
 
+function _normalizeRefText(reference) {
+  return (reference || '')
+    .replace(/[–—]/g, '-')
+    .replace(/\s+(?:and|&)\s+/gi, '; ')
+    .trim();
+}
+
 function _normalizeRefGroups(reference) {
-  const groups = _splitRefGroups((reference || '').replace(/[–—]/g, '-'));
+  const groups = _splitRefGroups(_normalizeRefText(reference));
   if (!groups.length) return [];
 
   const normalized = [];
