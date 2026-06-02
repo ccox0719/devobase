@@ -1325,13 +1325,6 @@ function renderResult(d) {
 
     <div class="hdiv"></div>
 
-    <div class="verse-block">
-      <div class="verse-text">${d.keyVerse ? `"${esc(d.keyVerse)}"` : '<span style="opacity:.4;font-style:italic">No quoted verse detected — paste in quotes if needed</span>'}</div>
-      <div class="verse-ref">— ${esc(d.keyVerseRef)}</div>
-    </div>
-
-    <div class="hdiv"></div>
-
     <div>
       <div class="tag-section-label">Themes</div>
       <div class="tag-row" id="tagThemes">${bookHTML}${themeHTML}<span class="tag add" onclick="addTag('themes','tagThemes','theme')">+ add</span></div>
