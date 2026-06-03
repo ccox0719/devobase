@@ -200,7 +200,13 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
 .lib-hd { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--divider); }
 .lib-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 300; color: var(--ink); display: flex; align-items: center; gap: 10px; }
 .lib-count { background: var(--ink); color: var(--bg); font-family: 'Karla', sans-serif; font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
-.lib-controls { display: flex; gap: 8px; align-items: center; }
+.lib-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.sort-in {
+  background: rgba(242,236,224,.8); border: 1px solid var(--border); border-radius: var(--r);
+  padding: 6px 10px; font-family: 'Karla', sans-serif; font-size: 12.5px; font-weight: 300;
+  color: var(--ink2); outline: none; min-width: 150px; transition: border-color .18s;
+}
+.sort-in:focus { border-color: var(--gold); }
 .search-in {
   background: rgba(242,236,224,.8); border: 1px solid var(--border); border-radius: var(--r);
   padding: 6px 11px; font-family: 'Karla', sans-serif; font-size: 12.5px; font-weight: 300;
@@ -381,6 +387,13 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
   cursor: pointer; transition: background .15s;
 }
 .dv-lead-btn:hover { background: #8c6118; }
+.dv-done-btn {
+  background: transparent; color: var(--sage); border: 1px solid var(--sage); padding: 9px 16px;
+  font-family: 'Karla', sans-serif; font-size: 12px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase; border-radius: var(--r);
+  cursor: pointer; transition: background .15s, color .15s, border-color .15s;
+}
+.dv-done-btn:hover { background: var(--sage); color: #fff; }
 .dv-title {
   font-family: 'Cormorant Garamond', serif;
   font-size: clamp(26px,5vw,44px); font-weight: 300; line-height: 1.15;
@@ -666,18 +679,22 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
 
   .lib-controls {
     width: 100%;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 8px;
+    display: flex;
+    flex-direction: column;
     align-items: stretch;
   }
 
   .search-wrap {
-    grid-column: 1 / -1;
     flex-wrap: wrap;
   }
 
   .search-wrap .search-in {
+    width: 100%;
+    min-height: 42px;
+    font-size: 14px;
+  }
+
+  .sort-in {
     width: 100%;
     min-height: 42px;
     font-size: 14px;
@@ -875,13 +892,21 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
     <div class="lib-hd">
       <div class="lib-title">
         Saved Lessons
-        <span class="lib-count" id="libCount">0</span>
+        <span class="lib-count" id="libCount">0/0</span>
       </div>
       <div class="lib-controls">
         <div class="search-wrap">
           <input class="search-in" id="searchIn" type="text" placeholder="Search…" oninput="filterLib()" />
           <span class="tag-filter-pill" id="tagFilterPill" style="display:none" onclick="clearTagFilter()">✕ Clear filter</span>
         </div>
+        <select class="sort-in" id="sortIn" onchange="setSortMode(this.value)">
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="title">Title A-Z</option>
+          <option value="scripture">Scripture</option>
+          <option value="used">Most used</option>
+          <option value="series">Series order</option>
+        </select>
         <button class="new-lesson-btn" onclick="openParseModal()">+ New Lesson</button>
         <div class="acct-menu-wrap" id="acctMenuWrap">
           <button class="acct-btn" id="acctBtn" onclick="toggleAccountMenu()">Sign In ▾</button>
@@ -892,7 +917,7 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
       </div>
     </div>
     <div class="lib-grid" id="libGrid">
-      <div class="lib-empty"><p>Connect to Supabase to load your library</p></div>
+      <div class="lib-empty"><p>Loading your library…</p></div>
     </div>
   </div>
 
@@ -968,6 +993,7 @@ Write a short closing prayer.</pre>
     <div class="dv-topbar">
       <button class="dv-back" onclick="closeDetailView()">← Back to Library</button>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="dv-done-btn" id="dvDoneBtn" onclick="markLessonDone()">✓ Done Again</button>
         <button class="dv-edit-btn" id="dvEditBtn" onclick="enterEditMode()">✎ Edit</button>
         <button class="dv-lead-btn" id="dvLeadBtn" onclick="enterLeaderMode()">▶ Lead This Lesson</button>
       </div>
@@ -1052,7 +1078,7 @@ const THEME_MAP = {
 
 const AUDIENCE_MAP = {
   'Adults':      ['adult','grown','mature'],
-  'Men':         ['\bmen\b','man','masculine','father','husband','brother'],
+  'Men':         ['\\bmen\\b','man','masculine','father','husband','brother'],
   'Women':       ['women','woman','feminine','mother','wife','sister'],
   'Teens':       ['teen','teenager','youth','young people','adolescent','high school'],
   'Small Group': ['small group','group','together','community','discuss','discussion'],
@@ -1428,6 +1454,7 @@ function copyJSON() {
 let sb = null;
 let allLessons = [];
 let filterTag = null;
+let sortMode = 'newest';
 let currentUser = null;
 let authSubscription = null;
 const CFG_KEY = 'devot_cfg_v2';
@@ -1442,6 +1469,21 @@ function getEnvCfg() {
     url: (cfg.url || '').trim(),
     key: (cfg.anonKey || cfg.key || '').trim(),
   };
+}
+
+function loadSortMode() {
+  try {
+    const saved = localStorage.getItem('devot_sort_v1');
+    if (saved) sortMode = saved;
+  } catch {}
+  const sortEl = document.getElementById('sortIn');
+  if (sortEl) sortEl.value = sortMode;
+}
+
+function setSortMode(mode) {
+  sortMode = mode || 'newest';
+  try { localStorage.setItem('devot_sort_v1', sortMode); } catch {}
+  filterLib();
 }
 
 async function fetchNetlifyCfg() {
@@ -1472,8 +1514,8 @@ function getUserLabel(user) {
 
 function renderSignedOutLibrary() {
   allLessons = [];
-  document.getElementById('libCount').textContent = '0';
-  document.getElementById('libGrid').innerHTML = '<div class="lib-empty"><p>Sign in to load your library</p></div>';
+  document.getElementById('libCount').textContent = '0/0';
+  document.getElementById('libGrid').innerHTML = '<div class="lib-empty"><p>Sign in to view your saved lessons</p></div>';
 }
 
 function updateAuthUi() {
@@ -1638,7 +1680,7 @@ async function saveLesson() {
   if (!sb) {
     // Offline fallback — save to localStorage
     const lib = JSON.parse(localStorage.getItem('devot_local') || '[]');
-    lib.unshift({ ...d, id: Date.now(), created_at: new Date().toISOString(), series_name: d.seriesName||null, series_order: d.seriesOrder?parseInt(d.seriesOrder):null });
+    lib.unshift({ ...d, times_done: 0, id: Date.now(), created_at: new Date().toISOString(), series_name: d.seriesName||null, series_order: d.seriesOrder?parseInt(d.seriesOrder):null });
     localStorage.setItem('devot_local', JSON.stringify(lib));
     allLessons = lib;
     showToast('Saved locally (no Supabase)');
@@ -1667,6 +1709,7 @@ async function saveLesson() {
     audience:          d.audience || [],
     tone:              d.tone || null,
     reflection_count:  d.reflectionCount || 0,
+    times_done:        0,
     has_application:   d.hasApplication || false,
     has_prayer:        d.hasPrayer || false,
     estimated_minutes: d.estimatedMinutes || null,
@@ -1706,10 +1749,34 @@ async function loadLibrary() {
   renderLib(allLessons);
 }
 
+function sortLessons(lessons) {
+  const list = [...(lessons || [])];
+  const titleOf = l => (l.title || '').trim().toLowerCase();
+  const refOf = l => (l.scripture_ref || '').trim().toLowerCase();
+  const seriesOf = l => (l.series_name || '').trim().toLowerCase();
+  const doneOf = l => Number(l.times_done) || 0;
+  const dateOf = l => new Date(l.created_at || 0).getTime() || 0;
+
+  list.sort((a, b) => {
+    if (sortMode === 'oldest') return dateOf(a) - dateOf(b) || titleOf(a).localeCompare(titleOf(b));
+    if (sortMode === 'title') return titleOf(a).localeCompare(titleOf(b)) || dateOf(b) - dateOf(a);
+    if (sortMode === 'scripture') return refOf(a).localeCompare(refOf(b)) || titleOf(a).localeCompare(titleOf(b));
+    if (sortMode === 'used') return doneOf(b) - doneOf(a) || dateOf(b) - dateOf(a) || titleOf(a).localeCompare(titleOf(b));
+    if (sortMode === 'series') {
+      return seriesOf(a).localeCompare(seriesOf(b)) ||
+        (a.series_order||9999) - (b.series_order||9999) ||
+        titleOf(a).localeCompare(titleOf(b)) ||
+        dateOf(b) - dateOf(a);
+    }
+    return dateOf(b) - dateOf(a) || titleOf(a).localeCompare(titleOf(b));
+  });
+
+  return list;
+}
+
 function filterLib() {
   const q = document.getElementById('searchIn').value.toLowerCase().trim();
-  if (!q && !filterTag) { renderLib(allLessons); return; }
-  renderLib(allLessons.filter(l => {
+  const filtered = allLessons.filter(l => {
     const matchSearch = !q || (
       (l.title||'').toLowerCase().includes(q) ||
       (l.scripture_ref||'').toLowerCase().includes(q) ||
@@ -1726,7 +1793,8 @@ function filterLib() {
       l.series_name === filterTag
     );
     return matchSearch && matchTag;
-  }));
+  });
+  renderLib(filtered);
 }
 
 function applyTagFilter(val) {
@@ -1781,13 +1849,14 @@ function libCardHtml(l) {
         data-tag="${esc(a)}" title="Filter: ${esc(a)}">${esc(a)}</span>`),
   ].join('');
   const date = new Date(l.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  const doneCount = Number.isFinite(Number(l.times_done)) ? Number(l.times_done) : 0;
   return `
     <div class="lib-card" onclick="handleCardClick(event,'${l.id}')">
       <div class="lc-ref">${esc(l.scripture_ref||'')}</div>
       <div class="lc-title">${esc(l.title||'Untitled')}</div>
       <div class="lc-tags">${cardTags}</div>
       <div class="lc-meta">
-        <span>${esc(l.tone||'')} · ${l.estimated_minutes||'?'} min · ${date}</span>
+        <span>${esc(l.tone||'')} · ${l.estimated_minutes||'?'} min · ${doneCount} done · ${date}</span>
         <button class="lc-del" onclick="event.stopPropagation();delLesson(event,'${l.id}')">✕</button>
       </div>
     </div>`;
@@ -1813,16 +1882,19 @@ function handleSeriesMetaClick(event) {
 }
 
 function renderLib(lessons) {
-  document.getElementById('libCount').textContent = allLessons.length;
+  const totalCount = allLessons.length;
+  const visibleCount = lessons.length;
+  document.getElementById('libCount').textContent = `${visibleCount}/${totalCount}`;
   const grid = document.getElementById('libGrid');
   if (!lessons.length) {
-    grid.innerHTML = `<div class="lib-empty"><p>${allLessons.length ? 'No results match your search' : 'No lessons saved yet'}</p></div>`;
+    grid.innerHTML = `<div class="lib-empty"><p>${getLibraryEmptyMessage()}</p></div>`;
     return;
   }
 
+  const sortedLessons = sortLessons(lessons);
   const seriesMap = new Map();
   const standalone = [];
-  lessons.forEach(l => {
+  sortedLessons.forEach(l => {
     if (l.series_name) {
       if (!seriesMap.has(l.series_name)) seriesMap.set(l.series_name, []);
       seriesMap.get(l.series_name).push(l);
@@ -1873,6 +1945,20 @@ function renderLib(lessons) {
   }
 
   grid.innerHTML = html;
+}
+
+function getLibraryEmptyMessage() {
+  const query = document.getElementById('searchIn')?.value?.trim() || '';
+  if (!sb) {
+    return allLessons.length ? 'No results match your filters' : 'No lessons saved yet';
+  }
+  if (!currentUser) {
+    return 'Sign in to view your saved lessons';
+  }
+  if (query || filterTag) {
+    return 'No results match your search or filter';
+  }
+  return 'No lessons saved yet';
 }
 
 function loadCard(id) {
@@ -2252,6 +2338,7 @@ function openDetailView(id) {
       <div class="dv-meta-row">
         <span class="dv-meta-pill">⏱ ${l.estimated_minutes || '?'} min</span>
         <span class="dv-meta-pill">${l.reflection_count || 0} questions</span>
+        <span class="dv-meta-pill">✓ Done ${Number.isFinite(Number(l.times_done)) ? Number(l.times_done) : 0}x</span>
         ${l.tone ? `<span class="dv-meta-pill">${esc(l.tone)}</span>` : ''}
         ${l.has_application ? `<span class="dv-meta-pill">✓ Application</span>` : ''}
         ${l.has_prayer      ? `<span class="dv-meta-pill">✓ Prayer</span>`      : ''}
@@ -2260,8 +2347,10 @@ function openDetailView(id) {
     </div>`;
 
   // Restore topbar buttons in case we're returning from edit mode
+  const db = document.getElementById('dvDoneBtn');
   const eb = document.getElementById('dvEditBtn');
   const lb = document.getElementById('dvLeadBtn');
+  if (db) db.style.display = '';
   if (eb) eb.style.display = '';
   if (lb) lb.style.display = '';
 
@@ -2287,6 +2376,36 @@ function closeDetailView() {
   document.body.style.overflow = '';
 }
 
+async function markLessonDone() {
+  const l = _currentLesson;
+  if (!l) return;
+
+  const nextCount = (Number(l.times_done) || 0) + 1;
+  const updates = { times_done: nextCount };
+
+  if (sb) {
+    if (!currentUser) { showToast('Sign in required', true); return; }
+    const { error } = await sb.from('devotional_lessons')
+      .update(updates)
+      .eq('id', l.id)
+      .eq('user_id', currentUser.id);
+    if (error) { showToast('Update failed: ' + error.message.slice(0, 50), true); return; }
+  } else {
+    const lib = JSON.parse(localStorage.getItem('devot_local') || '[]');
+    const idx = lib.findIndex(x => String(x.id) === String(l.id));
+    if (idx > -1) {
+      lib[idx].times_done = nextCount;
+      localStorage.setItem('devot_local', JSON.stringify(lib));
+      allLessons = lib;
+    }
+  }
+
+  l.times_done = nextCount;
+  renderLib(allLessons);
+  openDetailView(l.id);
+  showToast(`Marked done (${nextCount} total)`);
+}
+
 /* ════════════════════════════════════════════════════════════════════════════
    EDIT MODE
    ════════════════════════════════════════════════════════════════════════════ */
@@ -2304,6 +2423,7 @@ function enterEditMode() {
 
   document.getElementById('dvEditBtn').style.display = 'none';
   document.getElementById('dvLeadBtn').style.display = 'none';
+  document.getElementById('dvDoneBtn').style.display = 'none';
 
   document.getElementById('dvBody').innerHTML = `
     <div class="dv-edit-form">
@@ -2664,6 +2784,7 @@ document.addEventListener('click', e => {
 
 /* ── Init ─────────────────────────────────────────────────────────────────── */
 async function bootstrap() {
+  loadSortMode();
   const remoteCfg = await fetchNetlifyCfg();
   if (remoteCfg.url && remoteCfg.key) {
     await connect(remoteCfg);

@@ -20,6 +20,7 @@ create table if not exists devotional_lessons (
 
   tone              text,
   reflection_count  integer default 0,
+  times_done        integer default 0,
   has_application   boolean default false,
   has_prayer        boolean default false,
   estimated_minutes integer,
@@ -59,6 +60,8 @@ create policy "Users can delete own lessons"
 
 alter table devotional_lessons add column if not exists series_name  text;
 alter table devotional_lessons add column if not exists series_order integer;
+alter table devotional_lessons add column if not exists times_done    integer default 0;
+update devotional_lessons set times_done = 0 where times_done is null;
 
 create index if not exists idx_dl_user_id        on devotional_lessons (user_id);
 create index if not exists idx_dl_scripture_book on devotional_lessons (scripture_book);
