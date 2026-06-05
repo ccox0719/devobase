@@ -1108,10 +1108,20 @@ Write a short closing prayer.`;
 function readLessonField(raw, labels) {
   for (const label of labels) {
     const safeLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const match = raw.match(new RegExp('^\\s*' + safeLabel + '\\s*:\\s*(.+)$', 'im'));
-    if (match && match[1].trim()) return match[1].trim();
+    const match = raw.match(new RegExp('^\\s*(?:[*_`#>\\-]+\\s*)*' + safeLabel + '\\s*:\\s*(.+?)\\s*(?:[*_`]+)?\\s*$', 'im'));
+    if (match && match[1].trim()) return cleanLessonValue(match[1]);
   }
   return '';
+}
+
+function cleanLessonValue(value) {
+  return String(value || '').trim().replace(/^[*_`]+|[*_`]+$/g, '').trim();
+}
+
+function readLessonOrder(raw) {
+  const match = raw.match(/^\s*(?:[*_`#>\-]+\s*)*Lesson\s+(\d+)(?:\s+of\s+\d+)?\s*(?:[*_`]+)?\s*$/im)
+    || raw.match(/^\s*(?:[*_`#>\-]+\s*)*Lesson\s*:\s*(\d+)(?:\s+of\s+\d+)?\s*(?:[*_`]+)?\s*$/im);
+  return match ? Number(match[1]) : null;
 }
 
 function toTitleCase(text) {
@@ -1156,6 +1166,7 @@ function parseLesson() {
   const explicitRef   = readLessonField(raw, ['Scripture Reference', 'Scripture', 'Passage']);
   const explicitVerse = readLessonField(raw, ['Key Verse', 'Key Passage', 'Memory Verse']);
   const explicitSeries = readLessonField(raw, ['Series']);
+  const explicitLessonOrder = readLessonOrder(raw);
 
   // ── Title ────────────────────────────────────────────────────────────────
   // First non-empty line that isn't a scripture ref or "A Devotional from..."
@@ -1169,13 +1180,13 @@ function parseLesson() {
   // ── Series / Subtitle ────────────────────────────────────────────────────
   const seriesText = explicitSeries || readLessonField(raw, ['Series Name']);
   if (seriesText) {
-    const seriesMatch = seriesText.match(/^(.*?)(?:\s+(\d+))?$/);
+    const seriesMatch = seriesText.match(/^(.*?)(?:\s+(?:lesson\s*)?(\d+)(?:\s+of\s+\d+)?)?$/i);
     result.seriesName = toTitleCase(seriesMatch ? seriesMatch[1].trim() : seriesText.trim());
-    result.seriesOrder = seriesMatch && seriesMatch[2] ? Number(seriesMatch[2]) : null;
+    result.seriesOrder = explicitLessonOrder || (seriesMatch && seriesMatch[2] ? Number(seriesMatch[2]) : null);
     result.subtitle = toTitleCase(seriesText.trim());
   } else {
     result.seriesName = '';
-    result.seriesOrder = null;
+    result.seriesOrder = explicitLessonOrder;
     const subMatch = raw.match(/A Devotional(?:\s+from)?\s+([^\n]+)/i);
     result.subtitle = subMatch ? toTitleCase(subMatch[1].trim()) : '';
   }
@@ -1710,7 +1721,6 @@ async function saveLesson() {
     audience:          d.audience || [],
     tone:              d.tone || null,
     reflection_count:  d.reflectionCount || 0,
-    times_done:        0,
     has_application:   d.hasApplication || false,
     has_prayer:        d.hasPrayer || false,
     estimated_minutes: d.estimatedMinutes || null,
