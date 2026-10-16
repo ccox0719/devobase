@@ -1148,11 +1148,11 @@ function parseLesson() {
   const raw = document.getElementById('lessonInput').value.trim();
   if (!raw) { showToast('Paste a lesson first', true); return; }
 
-  const lines   = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  const lines   = raw.split('\n').map(l => l.trim()).filter(l => l && !/^(?:⸻|---+)$/.test(l));
   const lower   = raw.toLowerCase();
   const result  = {};
   const explicitTitle = readLessonField(raw, ['Title']);
-  const explicitRef   = readLessonField(raw, ['Scripture Reference', 'Scripture', 'Passage']);
+  const explicitRef   = readLessonField(raw, ['Scripture Reference', 'Scripture', 'Passage']);\n  const devotionalFrom = raw.match(/^A Devotional from\\s+(.+)$/im);
   const explicitVerse = readLessonField(raw, ['Key Verse', 'Key Passage', 'Memory Verse']);
   const explicitSeries = readLessonField(raw, ['Series']);
 
@@ -1181,7 +1181,7 @@ function parseLesson() {
 
   // ── Scripture reference ───────────────────────────────────────────────────
   // Preserve multiple semicolon-separated references from the Scripture field.
-  const scriptureInput = (explicitRef || '').replace(/\s*\((?:ESV|NIV|KJV|NKJV|NLT|NASB|CSB|BSB|NRSV|RSV)\)\s*$/i, '').trim();
+  const scriptureInput = (explicitRef || (devotionalFrom ? devotionalFrom[1] : '')).replace(/\s*\((?:ESV|NIV|KJV|NKJV|NLT|NASB|CSB|BSB|NRSV|RSV)\)\s*$/i, '').trim();
   const bookPattern = '(' + BIBLE_BOOKS.map(b => b.replace(/\s/g, '\\s+')).join('|') + ')';
   const refChunkPattern = bookPattern + '\\s+(\\d+):(\\d+(?:[–\\-—]\\d+)?)';
   const refTailPattern = '(?:\\s*[;,]\\s*(?:' + bookPattern + '\\s+)?(?:\\d+:)?\\d+(?:[–\\-—]\\d+)?)';
@@ -1198,7 +1198,7 @@ function parseLesson() {
 
   // ── Key verse ─────────────────────────────────────────────────────────────
   // Support straight/smart quotes and verse translation labels.
-  const quoteSource = explicitVerse || raw;
+  const passageSection = raw.match(/^\\s*#{0,6}\\s*Key Passage\\s*:?\\s*$([\\s\\S]*?)(?=^\\s*#{0,6}\\s*Devotional Thought\\s*:?\\s*$|^\\s*⸻\\s*$)/im);\n  const quoteSource = (explicitVerse && /[\"“]/.test(explicitVerse) ? explicitVerse : '') || (passageSection ? passageSection[1] : raw);
   const quoteMatch = quoteSource.match(/["“]([^"”]{5,500})["”]/);
   result.keyVerse = quoteMatch ? quoteMatch[1].trim() : '';
   if (quoteMatch) {
@@ -2223,38 +2223,23 @@ function renderBsbHtml(verses) {
 function parseRawSections(rawText) {
   const r = { devotionalThought: '', paragraphs: [], questions: [], application: '', prayer: '' };
   if (!rawText) return r;
-
-  // Finds a section header that may be prefixed with markdown # characters
-  function findSection(name) {
-    return new RegExp(`^#{0,4}[ \\t]*${name}[ \\t:]*$`, 'im').exec(rawText);
+  const text = rawText.replace(/\r\n?/g, '\n');
+  const header = name => new RegExp('^\\s*#{0,6}\\s*' + name + '\\s*:?\\s*$', 'im').exec(text);
+  const devotM = header('Devotional\\s+Thought');
+  const reflM = header('Reflection\\s+Questions?');
+  const appM = header('Application');
+  const prayM = header('Prayer');
+  function section(from, to) {
+    if (!from) return '';
+    return text.slice(from.index + from[0].length, to ? to.index : text.length)
+      .split('\n').filter(line => !/^\s*(?:-{3,}|⸻|\\*{3,})\s*$/.test(line)).join('\n').trim();
   }
-
-  // Slices rawText between two header matches, strips --- dividers, trims
-  function sliceBetween(startM, endM) {
-    if (!startM) return '';
-    const start = startM.index + startM[0].length;
-    const end   = endM ? endM.index : rawText.length;
-    return rawText.slice(start, end)
-      .split('\n').filter(l => !/^-{3,}$/.test(l.trim())).join('\n')
-      .trim();
-  }
-
-  const devotM = findSection('Devotional\\s+Thought');
-  const reflM  = findSection('Reflection\\s+Questions?');
-  const appM   = findSection('Application');
-  const prayM  = findSection('Prayer');
-
-  r.devotionalThought = sliceBetween(devotM, reflM || appM);
-  r.paragraphs = r.devotionalThought
-    ? r.devotionalThought.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean)
-    : [];
-
-  const qMatches = rawText.match(/^[ \t]*\d+\.\s*.+/gm) || [];
-  r.questions = qMatches.map(q => q.replace(/^[ \t]*\d+\.\s*/, '').trim());
-
-  r.application = sliceBetween(appM, prayM);
-  r.prayer      = sliceBetween(prayM, null);
-
+  r.devotionalThought = section(devotM, reflM || appM || prayM);
+  r.paragraphs = r.devotionalThought ? r.devotionalThought.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean) : [];
+  const questionsText = section(reflM, appM || prayM);
+  r.questions = (questionsText.match(/^\s*\d+[.)]\s+.+/gm) || []).map(q => q.replace(/^\s*\d+[.)]\s+/, '').trim());
+  r.application = section(appM, prayM);
+  r.prayer = section(prayM, null);
   return r;
 }
 
