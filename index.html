@@ -1152,7 +1152,8 @@ function parseLesson() {
   const lower   = raw.toLowerCase();
   const result  = {};
   const explicitTitle = readLessonField(raw, ['Title']);
-  const explicitRef   = readLessonField(raw, ['Scripture Reference', 'Scripture', 'Passage']);\n  const devotionalFrom = raw.match(/^A Devotional from\\s+(.+)$/im);
+  const explicitRef   = readLessonField(raw, ['Scripture Reference', 'Scripture', 'Passage']);
+  const devotionalFrom = raw.match(/^A Devotional from\s+(.+)$/im);
   const explicitVerse = readLessonField(raw, ['Key Verse', 'Key Passage', 'Memory Verse']);
   const explicitSeries = readLessonField(raw, ['Series']);
 
@@ -1198,7 +1199,8 @@ function parseLesson() {
 
   // ── Key verse ─────────────────────────────────────────────────────────────
   // Support straight/smart quotes and verse translation labels.
-  const passageSection = raw.match(/^\\s*#{0,6}\\s*Key Passage\\s*:?\\s*$([\\s\\S]*?)(?=^\\s*#{0,6}\\s*Devotional Thought\\s*:?\\s*$|^\\s*⸻\\s*$)/im);\n  const quoteSource = (explicitVerse && /[\"“]/.test(explicitVerse) ? explicitVerse : '') || (passageSection ? passageSection[1] : raw);
+  const passageSection = raw.match(/^\s*#{0,6}\s*Key Passage\s*:?\s*$([\s\S]*?)(?=^\s*#{0,6}\s*Devotional Thought\s*:?\s*$|^\s*⸻\s*$)/im);
+  const quoteSource = (explicitVerse && /[\"“]/.test(explicitVerse) ? explicitVerse : '') || (passageSection ? passageSection[1] : raw);
   const quoteMatch = quoteSource.match(/["“]([^"”]{5,500})["”]/);
   result.keyVerse = quoteMatch ? quoteMatch[1].trim() : '';
   if (quoteMatch) {
@@ -2232,7 +2234,7 @@ function parseRawSections(rawText) {
   function section(from, to) {
     if (!from) return '';
     return text.slice(from.index + from[0].length, to ? to.index : text.length)
-      .split('\n').filter(line => !/^\s*(?:-{3,}|⸻|\\*{3,})\s*$/.test(line)).join('\n').trim();
+      .split('\n').filter(line => !/^\s*(?:-{3,}|⸻|\*{3,})\s*$/.test(line)).join('\n').trim();
   }
   r.devotionalThought = section(devotM, reflM || appM || prayM);
   r.paragraphs = r.devotionalThought ? r.devotionalThought.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean) : [];
