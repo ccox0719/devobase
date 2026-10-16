@@ -1167,18 +1167,20 @@ function parseLesson() {
   ) || 'Untitled').replace(/^#+\s*/, ''));
 
   // ── Series / Subtitle ────────────────────────────────────────────────────
+  // Explicit metadata is authoritative. Also recognize the study/day heading
+  // used by The Weight of Simple Truths, without confusing the umbrella title
+  // with the individual series.
   const seriesText = explicitSeries || readLessonField(raw, ['Series Name']);
-  if (seriesText) {
-    const seriesMatch = seriesText.match(/^(.*?)(?:\s+(\d+))?$/);
-    result.seriesName = toTitleCase(seriesMatch ? seriesMatch[1].trim() : seriesText.trim());
-    result.seriesOrder = seriesMatch && seriesMatch[2] ? Number(seriesMatch[2]) : null;
-    result.subtitle = toTitleCase(seriesText.trim());
-  } else {
-    result.seriesName = '';
-    result.seriesOrder = null;
-    const subMatch = raw.match(/A Devotional(?:\s+from)?\s+([^\n]+)/i);
-    result.subtitle = subMatch ? toTitleCase(subMatch[1].trim()) : '';
-  }
+  const explicitOrder = readLessonField(raw, ['Series Order', 'Day', 'Lesson Number']);
+  const studyHeader = raw.match(/^(?:#{1,6}\\s*)?(?:The Weight of Simple Truths\\s*[|·:–-]\\s*)?(?:Study\\s*\\d+\\s*[|·:–-]\\s*)?(.+?)\\s*[|·:–-]\\s*Day\\s*(\\d+)\\s*$/im);
+  const standaloneStudy = raw.match(/^\\s*(?:#{1,6}\\s*)?Study\\s*\\d+\\s*[:|·–-]\\s*(.+?)\\s*$/im);
+  const standaloneDay = raw.match(/^\\s*(?:#{1,6}\\s*)?Day\\s*(\\d+)\\s*$/im);
+  const inlineSeries = seriesText ? seriesText.match(/^(.*?)(?:\\s*[|·:–-]\\s*(?:Day|Part|Lesson)\\s*(\\d+)|\\s+(\\d+))\\s*$/i) : null;
+  result.seriesName = toTitleCase((inlineSeries ? inlineSeries[1] : seriesText) || (studyHeader ? studyHeader[1] : '') || (standaloneStudy ? standaloneStudy[1] : ''));
+  const inferredOrder = (inlineSeries && (inlineSeries[2] || inlineSeries[3])) || (studyHeader && studyHeader[2]) || (standaloneDay && standaloneDay[1]);
+  result.seriesOrder = explicitOrder && /^\\d+$/.test(explicitOrder) ? Number(explicitOrder) : (inferredOrder ? Number(inferredOrder) : null);
+  const subMatch = raw.match(/A Devotional(?:\\s+from)?\\s+([^\\n]+)/i);
+  result.subtitle = subMatch ? toTitleCase(subMatch[1].trim()) : '';
 
   // ── Scripture reference ───────────────────────────────────────────────────
   // Preserve multiple semicolon-separated references from the Scripture field.
