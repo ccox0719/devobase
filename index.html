@@ -1176,7 +1176,7 @@ function parseLesson() {
   const standaloneStudy = raw.match(/^\\s*(?:#{1,6}\\s*)?Study\\s*\\d+\\s*[:|·–-]\\s*(.+?)\\s*$/im);
   const standaloneDay = raw.match(/^\\s*(?:#{1,6}\\s*)?Day\\s*(\\d+)\\s*$/im);
   const inlineSeries = seriesText ? seriesText.match(/^(.*?)(?:\\s*[|·:–-]\\s*(?:Day|Part|Lesson)\\s*(\\d+)|\\s+(\\d+))\\s*$/i) : null;
-  result.seriesName = toTitleCase((inlineSeries ? inlineSeries[1] : seriesText) || (studyHeader ? studyHeader[1] : '') || (standaloneStudy ? standaloneStudy[1] : ''));
+  result.seriesName = toTitleCase((inlineSeries ? inlineSeries[1] : seriesText) || (studyHeader ? studyHeader[1] : '') || (standaloneStudy && standaloneDay ? standaloneStudy[1] : ''));
   const inferredOrder = (inlineSeries && (inlineSeries[2] || inlineSeries[3])) || (studyHeader && studyHeader[2]) || (standaloneDay && standaloneDay[1]);
   result.seriesOrder = explicitOrder && /^\\d+$/.test(explicitOrder) ? Number(explicitOrder) : (inferredOrder ? Number(inferredOrder) : null);
   const subMatch = raw.match(/A Devotional(?:\\s+from)?\\s+([^\\n]+)/i);
