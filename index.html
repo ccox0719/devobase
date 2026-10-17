@@ -1170,15 +1170,17 @@ function parseLesson() {
   // Explicit metadata is authoritative. Also recognize the study/day heading
   // used by The Weight of Simple Truths, without confusing the umbrella title
   // with the individual series.
-  const seriesText = explicitSeries || readLessonField(raw, ['Series Name']);
+  // An explicit standalone declaration overrides any inferred series headings.
+  const standaloneFlag = /^(?:Series|Series Name)\s*:\s*(?:none|no|n\/a|standalone|single entry)\s*$/im.test(raw);
+  const seriesText = standaloneFlag ? '' : (explicitSeries || readLessonField(raw, ['Series Name']));
   const explicitOrder = readLessonField(raw, ['Series Order', 'Day', 'Lesson Number']);
   const studyHeader = raw.match(/^(?:#{1,6}\\s*)?(?:The Weight of Simple Truths\\s*[|·:–-]\\s*)?(?:Study\\s*\\d+\\s*[|·:–-]\\s*)?(.+?)\\s*[|·:–-]\\s*Day\\s*(\\d+)\\s*$/im);
   const standaloneStudy = raw.match(/^\\s*(?:#{1,6}\\s*)?Study\\s*\\d+\\s*[:|·–-]\\s*(.+?)\\s*$/im);
   const standaloneDay = raw.match(/^\\s*(?:#{1,6}\\s*)?Day\\s*(\\d+)\\s*$/im);
   const inlineSeries = seriesText ? seriesText.match(/^(.*?)(?:\\s*[|·:–-]\\s*(?:Day|Part|Lesson)\\s*(\\d+)|\\s+(\\d+))\\s*$/i) : null;
-  result.seriesName = toTitleCase((inlineSeries ? inlineSeries[1] : seriesText) || (studyHeader ? studyHeader[1] : '') || (standaloneStudy && standaloneDay ? standaloneStudy[1] : ''));
+  result.seriesName = standaloneFlag ? '' : toTitleCase((inlineSeries ? inlineSeries[1] : seriesText) || (studyHeader ? studyHeader[1] : '') || (standaloneStudy && standaloneDay ? standaloneStudy[1] : ''));
   const inferredOrder = (inlineSeries && (inlineSeries[2] || inlineSeries[3])) || (studyHeader && studyHeader[2]) || (standaloneDay && standaloneDay[1]);
-  result.seriesOrder = explicitOrder && /^\\d+$/.test(explicitOrder) ? Number(explicitOrder) : (inferredOrder ? Number(inferredOrder) : null);
+  result.seriesOrder = standaloneFlag ? null : (explicitOrder && /^\\d+$/.test(explicitOrder) ? Number(explicitOrder) : (inferredOrder ? Number(inferredOrder) : null));
   const subMatch = raw.match(/A Devotional(?:\\s+from)?\\s+([^\\n]+)/i);
   result.subtitle = subMatch ? toTitleCase(subMatch[1].trim()) : '';
 
