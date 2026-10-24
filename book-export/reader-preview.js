@@ -68,7 +68,8 @@ const css = `
 .reader-preview .reader-ref { color:#7a6e58; text-align:center; margin-bottom:32px; }
 .reader-preview .reader-verse { padding:23px 20px; margin:0 0 35px; border-top:1px solid #d6c6a4; border-bottom:1px solid #d6c6a4; text-align:center; font:italic 400 26px/1.35 'Cormorant Garamond',Georgia,serif; }
 .reader-preview .reader-verse small { display:block; font:12px/1.6 'Karla',sans-serif; color:#7a6e58; margin-top:10px; }
-.reader-preview h2 { font:500 29px 'Cormorant Garamond',Georgia,serif; margin:30px 0 14px; display:flex; align-items:center; gap:11px; }\n.reader-preview h2 svg { color:#b07d2a; flex:none; }
+.reader-preview h2 { font:500 29px 'Cormorant Garamond',Georgia,serif; margin:30px 0 14px; display:flex; align-items:center; gap:11px; }
+.reader-preview h2 svg { color:#b07d2a; flex:none; }
 .reader-preview .reader-prose p { font-size:17px; line-height:1.85; margin:0 0 19px; white-space:pre-wrap; }
 .reader-preview ol { padding-left:24px; font-size:16px; line-height:1.8; }
 .reader-preview li { padding-left:5px; margin-bottom:12px; }
@@ -125,7 +126,9 @@ export async function mountReaderPreview({ client, userId }) {
       const section = (heading, content, numbered = false) => {
         if (!content || (Array.isArray(content) && !content.length)) return;
         make('div', null, page, 'reader-divider');
-        const headingNode = make('h2', null, page);\n        headingNode.append(sectionIcon(heading));\n        make('span', heading, headingNode);
+        const headingNode = make('h2', null, page);
+        headingNode.append(sectionIcon(heading));
+        make('span', heading, headingNode);
         if (numbered) {
           const ol = make('ol', null, page);
           for (const question of content) make('li', question, ol);
