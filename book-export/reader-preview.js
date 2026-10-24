@@ -8,6 +8,35 @@ const make = (tag, text, parent, className) => {
   return node;
 };
 
+// Normalize legacy ALL-CAPS titles only in the reader; never rewrite stored text.
+export function readerTitle(value) {
+  const title = String(value || '').trim();
+  if (!title || title !== title.toUpperCase() || !/[A-Z]/.test(title)) return title;
+  const minor = new Set(['a','an','and','as','at','but','by','for','from','in','into','nor','of','on','or','over','the','to','with','yet']);
+  return title.toLowerCase().split(/(\s+)/).map((part, i, all) => {
+    if (!part.trim()) return part;
+    const word = part.replace(/^[^a-z]+|[^a-z]+$/g, '');
+    if (minor.has(word) && i !== 0 && i !== all.length - 1) return part;
+    return part.replace(/[a-z]/, c => c.toUpperCase());
+  }).join('');
+}
+
+const iconPaths = {
+  'Devotional Thought': ['M4 19.5A2.5 2.5 0 0 1 6.5 17H20','M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z'],
+  'Reflection Questions': ['M8 10h.01','M12 10h.01','M16 10h.01','M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3h.5a8.48 8.48 0 0 1 8 8v.5Z'],
+  'Application': ['M9 11l3 3L22 4','M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'],
+  'Prayer': ['M12 3v18','M5 10h14','M8 3h8']
+};
+function sectionIcon(name) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  for (const [key,value] of Object.entries({viewBox:'0 0 24 24',width:'20',height:'20',fill:'none',stroke:'currentColor','stroke-width':'1.6','stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true'})) svg.setAttribute(key,value);
+  for (const d of iconPaths[name] || []) {
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',d); svg.append(path);
+  }
+  return svg;
+}
+
 async function loadOwnedLessons(client, userId) {
   const { count, error } = await client.from('devotional_lessons')
     .select('id', { head: true, count: 'exact' }).eq('user_id', userId);
@@ -39,7 +68,8 @@ const css = `
 .reader-preview .reader-ref { color:#7a6e58; text-align:center; margin-bottom:32px; }
 .reader-preview .reader-verse { padding:23px 20px; margin:0 0 35px; border-top:1px solid #d6c6a4; border-bottom:1px solid #d6c6a4; text-align:center; font:italic 400 26px/1.35 'Cormorant Garamond',Georgia,serif; }
 .reader-preview .reader-verse small { display:block; font:12px/1.6 'Karla',sans-serif; color:#7a6e58; margin-top:10px; }
-.reader-preview h2 { font:500 29px 'Cormorant Garamond',Georgia,serif; margin:30px 0 14px; }
+.reader-preview h2 { font:500 29px 'Cormorant Garamond',Georgia,serif; margin:30px 0 14px; display:flex; align-items:center; gap:11px; }
+.reader-preview h2 svg { color:#b07d2a; flex:none; }
 .reader-preview .reader-prose p { font-size:17px; line-height:1.85; margin:0 0 19px; white-space:pre-wrap; }
 .reader-preview ol { padding-left:24px; font-size:16px; line-height:1.8; }
 .reader-preview li { padding-left:5px; margin-bottom:12px; }
@@ -75,7 +105,7 @@ export async function mountReaderPreview({ client, userId }) {
     if (!root.isConnected) return;
     if (!lessons.length) { page.textContent = 'No devotionals are saved yet.'; return; }
     lessons.forEach((lesson, i) => {
-      const option = make('option', lesson.title || 'Untitled', chooser);
+      const option = make('option', readerTitle(lesson.title || 'Untitled'), chooser);
       option.value = String(i);
     });
     let position = 0;
@@ -86,7 +116,7 @@ export async function mountReaderPreview({ client, userId }) {
       const sections = parseBookSections(lesson.raw_text);
       page.replaceChildren();
       make('div', 'DEVOTIONAL LIBRARY · READER PREVIEW', page, 'reader-kicker');
-      make('h1', meta.title || lesson.title || 'Untitled', page);
+      make('h1', readerTitle(meta.title || lesson.title || 'Untitled'), page);
       make('div', meta.scripture || lesson.scripture_ref || '', page, 'reader-ref');
       const verse = meta.keyVerse || lesson.key_verse;
       if (verse) {
@@ -96,7 +126,9 @@ export async function mountReaderPreview({ client, userId }) {
       const section = (heading, content, numbered = false) => {
         if (!content || (Array.isArray(content) && !content.length)) return;
         make('div', null, page, 'reader-divider');
-        make('h2', heading, page);
+        const headingNode = make('h2', null, page);
+        headingNode.append(sectionIcon(heading));
+        make('span', heading, headingNode);
         if (numbered) {
           const ol = make('ol', null, page);
           for (const question of content) make('li', question, ol);
