@@ -907,6 +907,7 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
           <option value="used">Most used</option>
           <option value="series">Series order</option>
         </select>
+        <button class="new-lesson-btn" type="button" onclick="openReaderPreview()">Reader Preview</button>
         <button class="new-lesson-btn" type="button" onclick="openBookReadiness()">Book Readiness</button>
         <button class="new-lesson-btn" onclick="openParseModal()">+ New Lesson</button>
         <div class="acct-menu-wrap" id="acctMenuWrap">
@@ -2808,6 +2809,12 @@ bootstrap();
 </script>
 <script type="module">
 import { mountBookReadiness } from './book-export/dashboard.js';
+import { mountReaderPreview } from './book-export/reader-preview.js';
+window.openReaderPreview = async function () {
+  const { currentUser, sb } = window.getBookReadinessAuth();
+  if (!currentUser || !sb) { alert('Sign in to preview your book.'); return; }
+  await mountReaderPreview({ client: sb, userId: currentUser.id });
+};
 window.openBookReadiness = async function () {
   const { currentUser, sb } = window.getBookReadinessAuth();
   if (!currentUser || !sb) {
