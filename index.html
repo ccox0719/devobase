@@ -1469,6 +1469,7 @@ let filterTag = null;
 let sortMode = 'newest';
 let currentUser = null;
 let authSubscription = null;
+window.getBookReadinessAuth = () => ({ currentUser, sb });
 const CFG_KEY = 'devot_cfg_v2';
 
 function loadCfg() {
@@ -2808,6 +2809,7 @@ bootstrap();
 <script type="module">
 import { mountBookReadiness } from './book-export/dashboard.js';
 window.openBookReadiness = async function () {
+  const { currentUser, sb } = window.getBookReadinessAuth();
   if (!currentUser || !sb) {
     alert('Sign in to review your book.');
     return;
