@@ -907,6 +907,7 @@ textarea::placeholder { color: rgba(74,64,48,.32); font-style: italic; }
           <option value="used">Most used</option>
           <option value="series">Series order</option>
         </select>
+        <button class="new-lesson-btn" type="button" onclick="openBookReadiness()">Book Readiness</button>
         <button class="new-lesson-btn" onclick="openParseModal()">+ New Lesson</button>
         <div class="acct-menu-wrap" id="acctMenuWrap">
           <button class="acct-btn" id="acctBtn" onclick="toggleAccountMenu()">Sign In ▾</button>
@@ -2803,6 +2804,16 @@ async function bootstrap() {
 }
 
 bootstrap();
+</script>
+<script type="module">
+import { mountBookReadiness } from './book-export/dashboard.js';
+window.openBookReadiness = async function () {
+  if (!currentUser || !sb) {
+    alert('Sign in to review your book.');
+    return;
+  }
+  await mountBookReadiness({ client: sb, userId: currentUser.id });
+};
 </script>
 </body>
 </html>
