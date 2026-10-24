@@ -51,3 +51,18 @@ test('completion does not imply publication approval', () => {
   assert.equal(result.publicationApproved, null);
   assert.equal(result.entries[0].publicationStatus, 'not_assessed');
 });
+
+test('unparsed legacy key verse is flagged as formatting review, not confirmed absent', () => {
+  const raw_text = header.replace('Key Verse: "Be strong and courageous." — Joshua 1:9', 'Key Verse: Be strong and courageous. Joshua 1:9') + body;
+  const result = assessBookReadiness({ raw_text });
+  assert.equal(result.reviewStatus, 'formatting_review');
+  assert.ok(result.formattingIssues.includes('keyVerse'));
+  assert.equal(result.missingContent.length, 0);
+});
+
+test('truly absent key verse heading is flagged as likely missing content', () => {
+  const raw_text = header.replace('Key Verse: "Be strong and courageous." — Joshua 1:9', '') + body;
+  const result = assessBookReadiness({ raw_text });
+  assert.equal(result.reviewStatus, 'missing_content');
+  assert.ok(result.missingContent.includes('keyVerse'));
+});
