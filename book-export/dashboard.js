@@ -27,27 +27,28 @@ export async function mountBookReadiness({ client, userId }) {
     if (!overlay.isConnected) return;
     const report = buildBookReadinessReport(lessons); status.replaceChildren();
     const summary = el('div', null, status); summary.style.cssText = 'display:flex;flex-wrap:wrap;gap:12px;margin:20px 0';
-    for (const [label, value] of [['Saved',report.total],['Structurally complete',report.structurallyComplete],['Needs review',report.needsReview]]) {
+    for (const [label, value] of [['Saved',report.total],['Structurally complete',report.structurallyComplete],['Formatting review',report.formattingReview],['Likely missing content',report.missingContent]]) {
       const card = el('div', null, summary); card.style.cssText = 'flex:1;min-width:140px;background:white;border:1px solid #ddd;padding:16px;border-radius:10px';
       el('strong', String(value), card).style.fontSize = '28px'; el('div', label, card);
     }
-    el('p','No publication approval field exists yet. Completeness is not publication approval. No lessons were changed.',status);
+    el('p','These are automated indicators, not proof of missing content. No publication approval field exists yet. No lessons were changed.',status);
     const search = el('input',null,status); search.type='search'; search.placeholder='Search title, Scripture, or series'; search.style.cssText='padding:12px;width:65%;max-width:420px;margin:8px;border:1px solid #aaa;border-radius:7px';
     const filter = el('select',null,status); filter.style.cssText='padding:12px;border:1px solid #aaa;border-radius:7px';
-    for (const [value,label] of [['all','All lessons'],['ready','Structurally complete'],['review','Needs review']]) { const option=el('option',label,filter); option.value=value; }
+    for (const [value,label] of [['all','All lessons'],['ready','Structurally complete'],['formatting_review','Formatting review'],['missing_content','Likely missing content']]) { const option=el('option',label,filter); option.value=value; }
     const list = el('div',null,status);
     const render = () => {
       list.replaceChildren();
       const term=search.value.toLowerCase().trim();
-      const matches=report.entries.filter(item => (filter.value==='all'||(filter.value==='ready')===item.complete) && [item.title,item.scripture,item.seriesName].some(s=>String(s||'').toLowerCase().includes(term)));
+      const matches=report.entries.filter(item => (filter.value==='all'||(filter.value==='ready'&&item.complete)||filter.value===item.reviewStatus) && [item.title,item.scripture,item.seriesName].some(s=>String(s||'').toLowerCase().includes(term)));
       el('p',String(matches.length)+' of '+report.total+' lessons',list);
       for (const item of matches) {
         const details=el('details',null,list); details.style.cssText='background:white;border:1px solid #ddd;padding:14px;margin:8px 0;border-radius:8px';
-        el('summary',(item.complete?'✓ ':'⚠ ')+item.title+' · '+item.scripture,details).style.cursor='pointer';
+        el('summary',(item.complete?'✓ ':item.reviewStatus==='formatting_review'?'◷ ':'⚠ ')+item.title+' · '+item.scripture,details).style.cursor='pointer';
         el('p','Series: '+(item.seriesName||'Standalone')+(item.seriesOrder==null?'':' · '+item.seriesOrder),details);
         el('p','Key verse: '+(item.keyVerse||'Not detected')+(item.keyVerseRef?' · '+item.keyVerseRef:''),details);
         el('p','Checks: '+Object.entries(item.checks).map(([k,v])=>(v?'✓ ':'✕ ')+k).join(' · '),details);
-        if (item.missing.length) el('p','Review: '+item.missing.join(', '),details);
+        if (item.formattingIssues.length) el('p','Formatting / detection review: '+item.formattingIssues.join(', '),details);
+        if (item.missingContent.length) el('p','Likely missing content (verify original): '+item.missingContent.join(', '),details);
         el('small','Publication approval: not assessed',details);
       }
     };

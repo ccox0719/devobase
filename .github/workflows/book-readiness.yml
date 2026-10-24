@@ -1,0 +1,24 @@
+name: Book Readiness Tests
+on:
+  pull_request:
+    paths:
+      - 'book-export/**'
+      - 'tests/book-export/**'
+      - '.github/workflows/book-readiness.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'book-export/**'
+      - 'tests/book-export/**'
+      - '.github/workflows/book-readiness.yml'
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/book-export/readiness.test.mjs

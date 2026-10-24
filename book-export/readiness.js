@@ -81,6 +81,26 @@ export function assessBookReadiness(lesson) {
     prayer: /\bamen\s*\.\s*$/i.test(sections.prayer),
   };
   const missing = Object.entries(checks).filter(([, ok]) => !ok).map(([name]) => name);
+  // A format/parser warning is not evidence that the lesson lacks content.
+  // Classify conservatively: only mark absent when the original source
+  // provides no candidate text. Otherwise require human formatting review.
+  const source = String(raw);
+  const hasCandidate = {
+    title: /\btitle\s*:/i.test(source) || Boolean(nonempty(lesson?.title)),
+    scripture: /\bscripture\s*:/i.test(source) || Boolean(nonempty(lesson?.scripture_ref)),
+    keyVerse: /\bkey\s*(?:verse|passage)\b/i.test(source) ||
+      Boolean(nonempty(lesson?.key_verse)),
+    keyVerseReference: /\bkey\s*(?:verse|passage)\b/i.test(source) ||
+      Boolean(nonempty(lesson?.key_verse_ref)),
+    devotionalThought: /\bdevotional\s*(?:thought)?\b/i.test(source),
+    reflectionQuestions: /\b(?:reflection|discussion)\s*questions?\b/i.test(source),
+    application: /\bapplication\b/i.test(source),
+    prayer: /\bprayer\b/i.test(source),
+  };
+  const formattingIssues = missing.filter(name => hasCandidate[name]);
+  const missingContent = missing.filter(name => !hasCandidate[name]);
+  const reviewStatus = !missing.length ? 'complete'
+    : missingContent.length ? 'missing_content' : 'formatting_review';
   return {
     id: lesson?.id ?? null,
     title: title || 'Untitled',
@@ -91,6 +111,9 @@ export function assessBookReadiness(lesson) {
     seriesOrder: lesson?.series_order ?? null,
     checks,
     missing,
+    formattingIssues,
+    missingContent,
+    reviewStatus,
     complete: missing.length === 0,
     publicationStatus: 'not_assessed',
     sections,
@@ -103,6 +126,8 @@ export function buildBookReadinessReport(lessons = []) {
     total: entries.length,
     structurallyComplete: entries.filter(x => x.complete).length,
     needsReview: entries.filter(x => !x.complete).length,
+    formattingReview: entries.filter(x => x.reviewStatus === 'formatting_review').length,
+    missingContent: entries.filter(x => x.reviewStatus === 'missing_content').length,
     publicationApproved: null,
     entries,
   };
