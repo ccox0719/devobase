@@ -82,7 +82,7 @@ const css = `
 
 function addParagraphs(parent, value) {
   const holder = make('div', null, parent, 'reader-prose');
-  const lines = String(value || '').split(/\r?\n/);
+  const lines = String(value || '').replace(/[🌅🌄🌞☀️]/gu, '').split(/\r?\n/);
   let paragraph = [];
   let list = null;
   const flush = () => {
