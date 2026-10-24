@@ -25,7 +25,7 @@ const iconPaths = {
   'Devotional Thought': ['M4 19.5A2.5 2.5 0 0 1 6.5 17H20','M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z'],
   'Reflection Questions': ['M8 10h.01','M12 10h.01','M16 10h.01','M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3h.5a8.48 8.48 0 0 1 8 8v.5Z'],
   'Application': ['M9 11l3 3L22 4','M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'],
-  'Prayer': ['M12 3v18','M5 10h14','M8 3h8']
+  'Prayer': ['M8 13.5 5.5 11 3 13.5V21h5l4-4','M16 13.5l2.5-2.5 2.5 2.5V21h-5l-4-4','M8 13.5V5a2 2 0 0 1 4 0v7','M12 12V3a2 2 0 0 1 4 0v10.5','M8 13.5 12 17l4-3.5']
 };
 function sectionIcon(name) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -68,12 +68,12 @@ const css = `
 .reader-preview .reader-ref { color:#7a6e58; text-align:center; margin-bottom:32px; }
 .reader-preview .reader-verse { padding:23px 20px; margin:0 0 35px; border-top:1px solid #d6c6a4; border-bottom:1px solid #d6c6a4; text-align:center; font:italic 400 26px/1.35 'Cormorant Garamond',Georgia,serif; }
 .reader-preview .reader-verse small { display:block; font:12px/1.6 'Karla',sans-serif; color:#7a6e58; margin-top:10px; }
-.reader-preview h2 { font:500 29px 'Cormorant Garamond',Georgia,serif; margin:30px 0 14px; display:flex; align-items:center; gap:11px; }
-.reader-preview h2 svg { color:#b07d2a; flex:none; }
-.reader-preview .reader-prose p { font-size:17px; line-height:1.85; margin:0 0 19px; white-space:pre-wrap; }
-.reader-preview ol { padding-left:24px; font-size:16px; line-height:1.8; }
-.reader-preview li { padding-left:5px; margin-bottom:12px; }
-.reader-preview .reader-divider { height:1px; background:#ddd5be; margin:35px 0 22px; }
+.reader-preview h2 { font:500 29px 'Cormorant Garamond',Georgia,serif; margin:24px 0 12px; display:flex; align-items:center; gap:12px; line-height:1.2; }
+.reader-preview h2 svg { color:#b07d2a; flex:0 0 24px; width:24px; height:24px; align-self:center; }
+.reader-preview .reader-prose p { font-size:17px; line-height:1.73; margin:0 0 16px; white-space:pre-wrap; }\n.reader-preview .reader-prose p:last-child { margin-bottom:0; }\n.reader-preview .reader-prose ul { padding-left:24px; margin:6px 0 16px; font-size:17px; line-height:1.73; }\n.reader-preview .reader-prose ul li { padding-left:2px; margin-bottom:3px; }
+.reader-preview ol { padding-left:23px; font-size:16px; line-height:1.73; }
+.reader-preview ol li { padding-left:2px; margin-bottom:14px; }
+.reader-preview .reader-divider { height:1px; background:#ddd5be; margin:30px 0 0; }
 .reader-preview .reader-nav { display:flex; justify-content:space-between; gap:12px; border-top:1px solid #ddd5be; margin-top:45px; padding-top:24px; }
 .reader-preview .reader-preview-banner { background:#e9dfc9; padding:12px 20px; text-align:center; font-size:12px; line-height:1.6; color:#4a4030; }
 .reader-preview .reader-select { max-width:100%; min-width:0; }
@@ -82,8 +82,30 @@ const css = `
 
 function addParagraphs(parent, value) {
   const holder = make('div', null, parent, 'reader-prose');
-  for (const paragraph of String(value || '').split(/\n\s*\n/).map(s => s.trim()).filter(Boolean))
-    make('p', paragraph, holder);
+  const lines = String(value || '').split(/\r?\n/);
+  let paragraph = [];
+  let list = null;
+  const flush = () => {
+    if (paragraph.length) {
+      make('p', paragraph.join(' ').trim(), holder);
+      paragraph = [];
+    }
+    list = null;
+  };
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) { flush(); continue; }
+    const bullet = line.match(/^(?:[*-]|•)\s+(.+)$/);
+    if (bullet) {
+      if (paragraph.length) flush();
+      if (!list) list = make('ul', null, holder);
+      make('li', bullet[1], list);
+    } else {
+      if (list) list = null;
+      paragraph.push(line);
+    }
+  }
+  flush();
 }
 
 export async function mountReaderPreview({ client, userId }) {
