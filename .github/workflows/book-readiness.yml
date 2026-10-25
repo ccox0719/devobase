@@ -26,3 +26,5 @@ jobs:
 
       - run: node --check book-export/admin.js
       - run: node --check book-export/suggested-days.js
+
+      - run: node --check book-export/family-epub.js
