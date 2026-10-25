@@ -23,3 +23,5 @@ jobs:
           node-version: '22'
       - run: node --test tests/book-export/readiness.test.mjs
       - run: node --check book-export/reader-preview.js
+
+      - run: node --check book-export/admin.js
