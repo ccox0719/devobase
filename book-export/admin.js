@@ -1,5 +1,6 @@
 import { buildBookReadinessReport } from './readiness.js';
 import { suggestReadingDays, BOOK_SEASONS } from './suggested-days.js';
+import { exportFamilyEpub } from './family-epub.js';
 
 const element = (tag, text, parent, cls) => {
   const node = document.createElement(tag);
@@ -91,6 +92,35 @@ export async function mountBookAdmin({ client, userId }) {
     element('h2', 'Publication planning', status);
     element('p', 'Suggested reading days are provisional and based on title and theme keywords. They are not saved assignments or publication approvals. December is reserved for Advent and Christmas.', status, 'muted');
     element('p', BOOK_SEASONS.map(x => `Days ${x.start}–${x.end}: ${x.label}`).join(' · '), status, 'muted');
+    element('h2', 'Family Kindle Edition', status);
+    element('p', 'Choose exactly which lessons to share. Your selection is saved only in this browser, not in Supabase. Export again whenever you add or revise lessons, then use Amazon Send to Kindle to replace the edition on each device. This does not publish the 365-day book.', status, 'muted');
+    const selectionKey = 'devobase_family_epub_selection_v1';
+    let selected;
+    try { selected = new Set(JSON.parse(localStorage.getItem(selectionKey) || '[]').map(String)); }
+    catch { selected = new Set(); }
+    const validIds = new Set(lessons.map(l=>String(l.id)));
+    selected = new Set([...selected].filter(id=>validIds.has(id)));
+    const familyTools = element('div',null,status,'toolbar');
+    const familyCount = element('span','',familyTools);
+    const exportButton = element('button','Download Family EPUB',familyTools);
+    const clearButton = element('button','Clear selection',familyTools);
+    const familyFeedback = element('p','',status,'muted');
+    const updateFamily = () => {
+      familyCount.textContent = selected.size+' selected';
+      exportButton.disabled = selected.size === 0;
+      localStorage.setItem(selectionKey,JSON.stringify([...selected]));
+    };
+    exportButton.onclick = () => {
+      try {
+        const chosen = lessons.filter(l=>selected.has(String(l.id))).sort((a,b)=>
+          (suggestions.get(String(a.id))?.day ?? 999) - (suggestions.get(String(b.id))?.day ?? 999) ||
+          String(a.title).localeCompare(String(b.title)));
+        const count = exportFamilyEpub(chosen);
+        familyFeedback.textContent = 'Downloaded '+count+' devotionals. Send this EPUB to Kindle using amazon.com/sendtokindle. Existing Kindle copies may need to be removed manually.';
+      } catch(error) { familyFeedback.textContent = 'Export could not complete: '+error.message; }
+    };
+    clearButton.onclick = () => { selected.clear(); updateFamily(); render(); };
+    updateFamily();
     element('h2', 'Lesson review', status);
     const toolbar = element('div', null, status, 'toolbar');
     const search = element('input', null, toolbar);
@@ -114,6 +144,16 @@ export async function mountBookAdmin({ client, userId }) {
       if (!matches.length) element('p','No lessons match your filters.',list,'empty');
       for (const item of matches) {
         const details = element('details', null, list, 'lesson');
+        const share = element('label',null,details);
+        share.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer';
+        const checkbox = element('input',null,share);
+        checkbox.type = 'checkbox'; checkbox.checked = selected.has(String(item.id));
+        checkbox.setAttribute('aria-label','Include '+item.title+' in Family Kindle Edition');
+        element('span','Include in Family Kindle Edition',share);
+        checkbox.onchange = () => {
+          if (checkbox.checked) selected.add(String(item.id)); else selected.delete(String(item.id));
+          updateFamily();
+        };
         const summary = element('summary', null, details);
         element('div',item.title,summary,'lesson-title');
         element('div',[item.scripture,item.seriesName ? 'Series: '+item.seriesName+(item.seriesOrder == null ? '' : ' · '+item.seriesOrder) : 'Standalone', suggestions.get(String(item.id)) ? 'Suggested day '+suggestions.get(String(item.id)).day : null].filter(Boolean).join(' · '),summary,'lesson-meta');
