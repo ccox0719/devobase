@@ -39,8 +39,13 @@ export function parseBookSections(rawText = '') {
 export function parseBookMetadata(rawText = '') {
   const text = String(rawText ?? '').replace(/\r\n?/g, '\n');
   const beforeBody = text.split(/^\s*#{0,6}\s*(?:devotional thought|devotional|devotion)\s*:?\s*$/im)[0];
-  const title = beforeBody.match(/^\s*(?:#{1,6}\s*)?Title\s*:\s*(.+)$/im)?.[1]?.trim() || '';
-  const scripture = beforeBody.match(/^\s*(?:#{1,6}\s*)?Scripture\s*:\s*(.+)$/im)?.[1]?.trim() || '';
+  const title = beforeBody.match(/^\s*(?:#{1,6}\s*)?Title\s*:\s*(.+)$/im)?.[1]?.trim()
+    || beforeBody.split('\n').map(line => line.trim()).find(line =>
+      line && !/^(?:#{1,6}\s*)?(?:scripture|key verse|key passage|series|day|a devotional from|supporting scriptures)\b/i.test(line) &&
+      !DIVIDER.test(line))?.replace(/^#{1,6}\s*/, '').replace(/^\[|\]$/g, '') || '';
+  const scripture = beforeBody.match(/^\s*(?:#{1,6}\s*)?Scripture\s*:\s*(.+)$/im)?.[1]?.trim()
+    || beforeBody.match(/^\s*(?:#{1,6}\s*)?Scripture\s*\n\s*([^\n]+)$/im)?.[1]?.trim()
+    || beforeBody.match(/^\s*(?:#{1,6}\s*)?A Devotional from\s+(.+)$/im)?.[1]?.trim() || '';
   const keyLine = beforeBody.match(/^\s*(?:#{1,6}\s*)?Key\s+(?:Verse|Passage)\s*:\s*(.+)$/im)?.[1]?.trim() || '';
   let keyVerse = '', keyVerseRef = '';
   // Canonical inline form, accepting straight/smart quotes and hyphen/en/em dash.
@@ -56,6 +61,22 @@ export function parseBookMetadata(rawText = '') {
   if (!keyVerse) {
     const legacy = beforeBody.match(/^\s*(?:#{0,6}\s*)?Key\s+(?:Verse|Passage)\s*:?\s*\n\s*[“"]([^”"\n]+)[”"]\s*\n\s*[-–—]\s*(.+)$/im);
     if (legacy) { keyVerse = legacy[1].trim(); keyVerseRef = legacy[2].trim(); }
+  }
+  if (!keyVerse) {
+    const lines = beforeBody.split('\n').map(line => line.trim());
+    const index = lines.findIndex(line => /^(?:#{1,6}\s*)?Key\s+(?:Verse|Passage)\s*:?\s*(?:[\w\s]+\d+:\d+)?$/i.test(line));
+    if (index >= 0) {
+      const following = lines.slice(index + 1).filter(Boolean);
+      const quote = following.find(line => /^[>\s]*[“"]/.test(line));
+      const reference = following.find(line => /^>?\s*[-–—]\s*(?:[1-3]\s*)?[A-Za-z]/.test(line));
+      if (quote && reference) {
+        keyVerse = quote.replace(/^>\s*/, '').replace(/^[“"]|[”"]$/g, '').trim();
+        keyVerseRef = reference.replace(/^>?\s*[-–—]\s*/, '').trim();
+      } else if (quote) {
+        const m = quote.match(/^[>\s]*[“"](.+?)[”"]\s*[-–—]\s*(.+)$/);
+        if (m) { keyVerse = m[1]; keyVerseRef = m[2]; }
+      }
+    }
   }
   return { title, scripture, keyVerse, keyVerseRef };
 }
