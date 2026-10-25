@@ -1185,6 +1185,16 @@ function parseLesson() {
   const inferredOrder = (inlineSeries && (inlineSeries[2] || inlineSeries[3])) || (studyHeader && studyHeader[2]) || (standaloneDay && standaloneDay[1]);
   result.seriesOrder = standaloneFlag ? null : (explicitOrder && /^\\d+$/.test(explicitOrder) ? Number(explicitOrder) : (inferredOrder ? Number(inferredOrder) : null));
   const subMatch = raw.match(/A Devotional(?:\\s+from)?\\s+([^\\n]+)/i);
+  // Canonical numbered titles infer series metadata without changing the title.
+  // Explicit series and standalone declarations always take precedence.
+  const titleSeries = (explicitTitle || result.title).trim().match(/^(.+?)\s+(?:\((\d{1,3})\)|(\d{1,3}))$/);
+  if (!standaloneFlag && !seriesText && !result.seriesName && titleSeries) {
+    const base = titleSeries[1].trim();
+    if (/[A-Za-z]/.test(base) && !/^(?:Psalm|Psalms|Proverbs|Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|Samuel|Kings|Chronicles|Ezra|Nehemiah|Esther|Job|Isaiah|Jeremiah|Ezekiel|Daniel|Matthew|Mark|Luke|John|Acts|Romans|Corinthians|Galatians|Ephesians|Philippians|Colossians|Thessalonians|Timothy|Titus|Philemon|Hebrews|James|Peter|Jude|Revelation|Chapter|Day|Lesson|Study)$/i.test(base)) {
+      result.seriesName = toTitleCase(base);
+      if (!explicitOrder) result.seriesOrder = Number(titleSeries[2] || titleSeries[3]);
+    }
+  }
   result.subtitle = subMatch ? toTitleCase(subMatch[1].trim()) : '';
 
   // ── Scripture reference ───────────────────────────────────────────────────
