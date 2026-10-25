@@ -1,4 +1,5 @@
 import { buildBookReadinessReport } from './readiness.js';
+import { suggestReadingDays, BOOK_SEASONS } from './suggested-days.js';
 
 const element = (tag, text, parent, cls) => {
   const node = document.createElement(tag);
@@ -77,6 +78,7 @@ export async function mountBookAdmin({ client, userId }) {
     if (!root.isConnected) return;
     const report = buildBookReadinessReport(lessons);
     const byId = new Map(lessons.map(lesson => [String(lesson.id), lesson]));
+    const suggestions = suggestReadingDays(lessons);
     status.replaceChildren();
     const stats = element('div', null, status, 'stats');
     for (const [value,label] of [
@@ -87,7 +89,8 @@ export async function mountBookAdmin({ client, userId }) {
       element('strong', value, card); element('span', label, card);
     }
     element('h2', 'Publication planning', status);
-    element('p', 'Approved: not yet tracked. Assigned days: not yet tracked. Unfilled days: cannot be calculated until approvals and ordering are implemented.', status, 'muted');
+    element('p', 'Suggested reading days are provisional and based on title and theme keywords. They are not saved assignments or publication approvals. December is reserved for Advent and Christmas.', status, 'muted');
+    element('p', BOOK_SEASONS.map(x => `Days ${x.start}–${x.end}: ${x.label}`).join(' · '), status, 'muted');
     element('h2', 'Lesson review', status);
     const toolbar = element('div', null, status, 'toolbar');
     const search = element('input', null, toolbar);
@@ -113,11 +116,12 @@ export async function mountBookAdmin({ client, userId }) {
         const details = element('details', null, list, 'lesson');
         const summary = element('summary', null, details);
         element('div',item.title,summary,'lesson-title');
-        element('div',[item.scripture,item.seriesName ? 'Series: '+item.seriesName+(item.seriesOrder == null ? '' : ' · '+item.seriesOrder) : 'Standalone'].filter(Boolean).join(' · '),summary,'lesson-meta');
+        element('div',[item.scripture,item.seriesName ? 'Series: '+item.seriesName+(item.seriesOrder == null ? '' : ' · '+item.seriesOrder) : 'Standalone', suggestions.get(String(item.id)) ? 'Suggested day '+suggestions.get(String(item.id)).day : null].filter(Boolean).join(' · '),summary,'lesson-meta');
         const label = item.complete ? 'Structurally complete' : item.reviewStatus === 'formatting_review' ? 'Formatting review' : 'Likely missing content';
         element('span',label,summary,'pill');
         const body = element('div',null,details,'lesson-body');
-        element('p','Publication: Not assessed · Reading day: Not assigned',body);
+        const suggestion = suggestions.get(String(item.id));
+        element('p','Publication: Not assessed · Assigned day: Not assigned · Suggested day: '+(suggestion ? suggestion.day+' ('+suggestion.theme+')' : 'Awaiting space'),body);
         element('p','Checks: '+Object.entries(item.checks).map(([name,ok]) => name+': '+(ok?'Pass':'Review')).join(' · '),body,'muted');
         if (item.formattingIssues.length) element('p','Detection issues: '+item.formattingIssues.join(', '),body);
         if (item.missingContent.length) element('p','Check original for: '+item.missingContent.join(', '),body);
