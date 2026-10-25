@@ -66,3 +66,24 @@ test('truly absent key verse heading is flagged as likely missing content', () =
   assert.equal(result.reviewStatus, 'missing_content');
   assert.ok(result.missingContent.includes('keyVerse'));
 });
+
+
+test('legacy plain title and devotional-from header are recognized', () => {
+  const raw_text = ['Rooted by the Water','A Devotional from Jeremiah 17:5–10',
+    'Key Passage','“For he shall be as a tree planted by the waters…”',
+    '— Jeremiah 17:8','',body].join('\n');
+  const report = assessBookReadiness({ raw_text });
+  assert.equal(report.title, 'Rooted by the Water');
+  assert.equal(report.scripture, 'Jeremiah 17:5–10');
+  assert.equal(report.keyVerseRef, 'Jeremiah 17:8');
+  assert.equal(report.complete, true);
+});
+
+test('multiline scripture and key verse headings are recognized', () => {
+  const raw_text = ['Peace Before the Outcome','Scripture','Judges 6:22–24',
+    'Key Verse','“The LORD Is Peace.” — Judges 6:24','',body].join('\n');
+  const report = assessBookReadiness({ raw_text });
+  assert.equal(report.scripture, 'Judges 6:22–24');
+  assert.equal(report.keyVerseRef, 'Judges 6:24');
+  assert.equal(report.complete, true);
+});
