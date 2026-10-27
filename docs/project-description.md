@@ -48,7 +48,9 @@ Prayer
 - Every Scripture reference must contain a book, chapter, and verse. Include the complete key verse text in quotation marks and its precise reference.
 - Preserve supplied personal stories, theological progression, tone, and intended meaning. Explain Scripture accurately, put grace before obedience, avoid repetitive conclusions, and end by inviting trust, love, or deeper relationship with God.
 - Make application specific and measurable for the coming week. End prayer with `Amen.`
-- For devotional series, format the series identifier as `(series title) (number only)` when naming series entries.
+- For every devotional belonging to a series, include two separate metadata lines immediately after `Scripture:` and before `Key Verse:`: `Series: [Series Title]` and `Series Order: [Positive Integer]`. Example: `Series: Near to the Holy One` followed by `Series Order: 2`.
+- Keep `Series:` identical across entries in the same series, without the entry number. Use `Series Order:` for the numeric sequence (1, 2, 3, etc.). Never put the number in parentheses after the series name, such as `Series: Near to the Holy One (2)`, because the current parser does not recognize that pattern as a sequence number.
+- Omit both series metadata lines for standalone lessons. The series order is distinct from the eventual 365-day book reading order.
 
 ## Source of Truth and Legacy Compatibility
 - Preserve the full original `raw_text`; structured fields can be incomplete or stale.
