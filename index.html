@@ -1163,7 +1163,7 @@ function parseLesson() {
   result.title = toTitleCase(explicitTitle || (lines.find(l =>
     l.length > 2 &&
     !/^a devotional/i.test(l) &&
-    !/^(title|series|scripture|passage|key verse|key passage|memory verse)\s*:/i.test(l) &&
+    !/^(title|series|series order|scripture|passage|key verse|key passage|memory verse)\s*:/i.test(l) &&
     !/^\d+:\d+/.test(l)
   ) || 'Untitled').replace(/^#+\s*/, ''));
 
@@ -1181,7 +1181,9 @@ function parseLesson() {
   const inlineSeries = seriesText ? seriesText.match(/^(.*?)(?:\\s*[|·:–-]\\s*(?:Day|Part|Lesson)\\s*(\\d+)|\\s+(\\d+))\\s*$/i) : null;
   result.seriesName = standaloneFlag ? '' : toTitleCase((inlineSeries ? inlineSeries[1] : seriesText) || (studyHeader ? studyHeader[1] : '') || (standaloneStudy && standaloneDay ? standaloneStudy[1] : ''));
   const inferredOrder = (inlineSeries && (inlineSeries[2] || inlineSeries[3])) || (studyHeader && studyHeader[2]) || (standaloneDay && standaloneDay[1]);
-  result.seriesOrder = standaloneFlag ? null : (explicitOrder && /^\\d+$/.test(explicitOrder) ? Number(explicitOrder) : (inferredOrder ? Number(inferredOrder) : null));
+  // Explicit Series Order is authoritative; legacy inferred order remains supported.
+  const parsedSeriesOrder = explicitOrder && /^[1-9]\\d*$/.test(explicitOrder) ? Number(explicitOrder) : null;
+  result.seriesOrder = standaloneFlag || !result.seriesName ? null : (parsedSeriesOrder || (inferredOrder && /^[1-9]\\d*$/.test(inferredOrder) ? Number(inferredOrder) : null));
   const subMatch = raw.match(/A Devotional(?:\\s+from)?\\s+([^\\n]+)/i);
   result.subtitle = subMatch ? toTitleCase(subMatch[1].trim()) : '';
 
