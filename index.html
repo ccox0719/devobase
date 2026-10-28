@@ -1184,8 +1184,8 @@ function parseLesson() {
   result.seriesName = standaloneFlag ? '' : toTitleCase((inlineSeries ? inlineSeries[1] : seriesText) || (studyHeader ? studyHeader[1] : '') || (standaloneStudy && standaloneDay ? standaloneStudy[1] : ''));
   const inferredOrder = (inlineSeries && (inlineSeries[2] || inlineSeries[3])) || (studyHeader && studyHeader[2]) || (standaloneDay && standaloneDay[1]);
   // Explicit Series Order takes priority; retain legacy inferred series numbering.
-  const parsedSeriesOrder = explicitOrder && /^[1-9]\\d*$/.test(explicitOrder) ? Number(explicitOrder) : null;
-  result.seriesOrder = standaloneFlag || !result.seriesName ? null : (parsedSeriesOrder || (inferredOrder && /^[1-9]\\d*$/.test(inferredOrder) ? Number(inferredOrder) : null));
+  const parsedSeriesOrder = explicitOrder && /^[1-9]\d*$/.test(explicitOrder) ? Number(explicitOrder) : null;
+  result.seriesOrder = standaloneFlag || !result.seriesName ? null : (parsedSeriesOrder || (inferredOrder && /^[1-9]\d*$/.test(inferredOrder) ? Number(inferredOrder) : null));
   const subMatch = raw.match(/A Devotional(?:\\s+from)?\\s+([^\\n]+)/i);
   result.subtitle = subMatch ? toTitleCase(subMatch[1].trim()) : '';
 
