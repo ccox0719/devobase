@@ -1,5 +1,6 @@
 import { buildBookReadinessReport } from './readiness.js';
 import { suggestReadingDays, BOOK_SEASONS } from './suggested-days.js';
+import { BOOK_TARGET, bookProgress } from './progress.js';
 
 const element = (tag, text, parent, cls) => {
   const node = document.createElement(tag);
@@ -44,6 +45,13 @@ const css = `
 .book-admin .stat,.book-admin .lesson {background:#faf6ee;border:1px solid #ddd5be;border-radius:5px;padding:15px}
 .book-admin .stat strong {display:block;font:500 34px 'Cormorant Garamond',Georgia,serif}
 .book-admin .stat span {font-size:12px;color:#7a6e58}
+.book-admin .progress-card {background:#1e1a12;color:#faf6ee;border-radius:6px;padding:20px;margin:25px 0}
+.book-admin .progress-card h2 {margin:0;color:#faf6ee;font-size:clamp(25px,5vw,32px)}
+.book-admin .progress-card p {margin:6px 0;color:#e9dfc9}
+.book-admin .progress-track {height:14px;background:#5c5344;border-radius:999px;overflow:hidden;margin:15px 0 9px}
+.book-admin .progress-fill {height:100%;background:#d6a84c;border-radius:inherit;transition:width .2s ease}
+.book-admin .progress-meta {display:flex;justify-content:space-between;gap:12px;align-items:baseline;font-size:12px}
+.book-admin .progress-meta strong {color:#faf6ee;font-size:16px}
 .book-admin .lesson {margin-bottom:10px}
 .book-admin .lesson summary {cursor:pointer;list-style:none}
 .book-admin .lesson summary::-webkit-details-marker {display:none}
@@ -77,13 +85,31 @@ export async function mountBookAdmin({ client, userId }) {
     const lessons = await fetchLessons(client, userId);
     if (!root.isConnected) return;
     const report = buildBookReadinessReport(lessons);
+    const progress = bookProgress(lessons.length, BOOK_TARGET);
     const byId = new Map(lessons.map(lesson => [String(lesson.id), lesson]));
     const suggestions = suggestReadingDays(lessons);
     status.replaceChildren();
+    const progressCard = element('section', null, status, 'progress-card');
+    progressCard.setAttribute('aria-label', '365-day devotional book progress');
+    element('div', 'YOUR 365-DAY BOOK', progressCard, 'eyebrow');
+    element('h2', `${progress.savedCount} saved devotionals toward ${progress.target}`, progressCard);
+    element('p', progress.milestone, progressCard);
+    const progressTrack = element('div', null, progressCard, 'progress-track');
+    progressTrack.setAttribute('role', 'progressbar');
+    progressTrack.setAttribute('aria-valuemin', '0');
+    progressTrack.setAttribute('aria-valuemax', String(progress.target));
+    progressTrack.setAttribute('aria-valuenow', String(Math.min(progress.savedCount, progress.target)));
+    progressTrack.setAttribute('aria-valuetext', `${progress.savedCount} of ${progress.target} saved devotionals (${progress.percentage}%)`);
+    const progressFill = element('div', null, progressTrack, 'progress-fill');
+    progressFill.style.width = `${progress.displayPercentage}%`;
+    const progressMeta = element('div', null, progressCard, 'progress-meta');
+    element('strong', `${progress.percentage}% complete`, progressMeta);
+    element('span', progress.remaining ? `${progress.remaining} to go` : 'Target reached', progressMeta);
+    element('p', 'Saved devotionals are not automatically approved for publication. Approval tracking has not been added yet.', progressCard);
     const stats = element('div', null, status, 'stats');
     for (const [value,label] of [
       [report.total,'Saved lessons'],[report.structurallyComplete,'Structurally complete'],
-      [report.formattingReview,'Formatting review'],[365,'Target reading days']
+      [report.formattingReview,'Formatting review'],['Not tracked','Approved for publication']
     ]) {
       const card = element('div', null, stats, 'stat');
       element('strong', value, card); element('span', label, card);
