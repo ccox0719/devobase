@@ -1,4 +1,3 @@
-/Users/cox/.zprofile:1: no such file or directory: /usr/local/bin/brew
 export const BOOK_TARGET = 365;
 
 export function bookProgress(savedCount, target = BOOK_TARGET) {
