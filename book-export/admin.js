@@ -1,4 +1,3 @@
-/Users/cox/.zprofile:1: no such file or directory: /usr/local/bin/brew
 import { buildBookReadinessReport } from './readiness.js';
 import { suggestReadingDays, BOOK_SEASONS } from './suggested-days.js';
 import { BOOK_TARGET, bookProgress } from './progress.js';
