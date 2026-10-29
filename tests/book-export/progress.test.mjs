@@ -1,4 +1,3 @@
-/Users/cox/.zprofile:1: no such file or directory: /usr/local/bin/brew
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { bookProgress } from '../../book-export/progress.js';
