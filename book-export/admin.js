@@ -91,10 +91,10 @@ export async function mountBookAdmin({ client, userId }) {
   try {
     const lessons = await fetchLessons(client, userId);
     if (!root.isConnected) return;
-    const report = buildBookReadinessReport(lessons);
+    let report = buildBookReadinessReport(lessons);
     const progress = bookProgress(lessons.length, BOOK_TARGET);
     const byId = new Map(lessons.map(lesson => [String(lesson.id), lesson]));
-    const suggestions = suggestReadingDays(lessons);
+    let suggestions = suggestReadingDays(lessons);
     status.replaceChildren();
     const progressCard = element('section', null, status, 'progress-card');
     progressCard.setAttribute('aria-label', '365-day devotional book progress');
@@ -114,12 +114,13 @@ export async function mountBookAdmin({ client, userId }) {
     element('span', progress.remaining ? `${progress.remaining} to go` : 'Target reached', progressMeta);
     element('p', 'Saved devotionals are not automatically approved for publication. Editorial approval is tracked separately from saved lesson count.', progressCard);
     const stats = element('div', null, status, 'stats');
+    const statValues = [];
     for (const [value,label] of [
       [report.total,'Saved lessons'],[report.structurallyComplete,'Structurally complete'],
       [report.formattingReview,'Formatting review'],[lessons.filter(l=>l.editorial_status==='approved').length,'Approved for publication']
     ]) {
       const card = element('div', null, stats, 'stat');
-      element('strong', value, card); element('span', label, card);
+      statValues.push(element('strong', value, card)); element('span', label, card);
     }
     element('h2', 'Publication planning', status);
     element('p', 'Suggested reading days are provisional and based on title and theme keywords. They are not saved assignments or publication approvals. December is reserved for Advent and Christmas.', status, 'muted');
@@ -136,7 +137,7 @@ export async function mountBookAdmin({ client, userId }) {
       ['formatting_review','Formatting review'],['missing_content','Likely missing content']
     ]) { const option = element('option',label,filter); option.value=value; }
     const list = element('div', null, status);
-    function render() {
+    function render(expandedId=null) {
       list.replaceChildren();
       const term = search.value.toLocaleLowerCase().trim();
       const matches = report.entries.filter(item =>
@@ -147,6 +148,7 @@ export async function mountBookAdmin({ client, userId }) {
       if (!matches.length) element('p','No lessons match your filters.',list,'empty');
       for (const item of matches) {
         const details = element('details', null, list, 'lesson');
+        if (String(item.id) === String(expandedId)) details.open = true;
         const lesson = byId.get(String(item.id));
         const summary = element('summary', null, details);
         element('div',item.title,summary,'lesson-title');
@@ -207,7 +209,20 @@ export async function mountBookAdmin({ client, userId }) {
             if(error) throw error;
             if(!data) throw new Error('No lesson was updated.');
             Object.assign(lesson,changes);
-            message.textContent='Saved. Reopen Book Admin to refresh readiness and progress.';
+            report = buildBookReadinessReport(lessons);
+            suggestions = suggestReadingDays(lessons);
+            statValues[0].textContent = String(report.total);
+            statValues[1].textContent = String(report.structurallyComplete);
+            statValues[2].textContent = String(report.formattingReview);
+            statValues[3].textContent = String(lessons.filter(l=>l.editorial_status==='approved').length);
+            const previousScroll = root.scrollTop;
+            render(lesson.id);
+            root.scrollTop = previousScroll;
+            const updated = [...list.querySelectorAll('details')].find(d=>d.open);
+            if (updated) {
+              const feedback=element('p','Saved successfully. Readiness and approval counts are up to date.',updated.querySelector('.lesson-body'),'muted');
+              feedback.setAttribute('role','status');
+            }
           } catch(error) {message.textContent='Save failed: '+(error.message||'Unknown error');}
           finally {save.disabled=false;}
         };
