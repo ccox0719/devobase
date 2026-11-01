@@ -140,7 +140,20 @@ export async function mountBookAdmin({ client, userId }) {
       ['formatting_review','Formatting review'],['missing_content','Likely missing content']
     ]) { const option = element('option',label,filter); option.value=value; }
     filter.value = reviewState.filter;
+    const nextButton = element('button', 'Review Next →', toolbar);
+    nextButton.type = 'button';
+    nextButton.title = 'Open the next devotional that still needs review';
     const list = element('div', null, status);
+    let visibleReviewIds = [];
+    function advanceReview() {
+      if (!visibleReviewIds.length) return;
+      const currentIndex = visibleReviewIds.findIndex(id => String(id) === String(reviewState.expandedId));
+      const nextId = visibleReviewIds[(currentIndex + 1) % visibleReviewIds.length];
+      render(nextId);
+      const selected = [...list.querySelectorAll('details')].find(node => node.open);
+      selected?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    nextButton.onclick = advanceReview;
     function render(expandedId=reviewState.expandedId) {
       reviewState.search = search.value;
       reviewState.filter = filter.value;
@@ -151,7 +164,10 @@ export async function mountBookAdmin({ client, userId }) {
         (filter.value === 'all' || item.reviewStatus === filter.value) &&
         [item.title,item.scripture,item.seriesName].some(value => String(value || '').toLocaleLowerCase().includes(term))
       );
-      element('p', matches.length + ' of ' + report.total + ' lessons', list, 'muted');
+      visibleReviewIds = matches.filter(item => !item.complete).map(item => item.id);
+      nextButton.disabled = visibleReviewIds.length === 0;
+      nextButton.textContent = visibleReviewIds.length ? 'Review Next →' : 'No reviews pending';
+      element('p', matches.length + ' of ' + report.total + ' lessons · ' + visibleReviewIds.length + ' needing review', list, 'muted');
       if (!matches.length) element('p','No lessons match your filters.',list,'empty');
       for (const item of matches) {
         const details = element('details', null, list, 'lesson');
