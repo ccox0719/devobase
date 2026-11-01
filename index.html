@@ -2373,6 +2373,7 @@ function openDetailView(id) {
 }
 
 function closeDetailView() {
+  document.getElementById('dvReturnToBookReview')?.remove();
   document.getElementById('detailView').style.display = 'none';
   document.body.style.overflow = '';
 }
@@ -2412,6 +2413,22 @@ async function markLessonDone() {
    ════════════════════════════════════════════════════════════════════════════ */
 let _editTags = { themes: [], topics: [], audience: [] };
 
+function showReturnToBookReview() {
+  let button = document.getElementById('dvReturnToBookReview');
+  if (!button) {
+    button = document.createElement('button');
+    button.id = 'dvReturnToBookReview';
+    button.className = 'dv-back';
+    button.textContent = '← Return to Book Review';
+    button.onclick = async () => {
+      closeDetailView();
+      button.remove();
+      await window.openBookAdmin();
+    };
+    document.querySelector('#detailView .dv-topbar')?.prepend(button);
+  }
+}
+
 window.openLessonFromBookAdmin = function (id) {
   if (!allLessons.some(lesson => String(lesson.id) === String(id))) {
     showToast('Lesson not loaded in Library. Please refresh and try again.', true);
@@ -2419,6 +2436,7 @@ window.openLessonFromBookAdmin = function (id) {
   }
   openDetailView(id);
   enterEditMode();
+  showReturnToBookReview();
   return true;
 };
 
