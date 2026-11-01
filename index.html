@@ -2412,6 +2412,16 @@ async function markLessonDone() {
    ════════════════════════════════════════════════════════════════════════════ */
 let _editTags = { themes: [], topics: [], audience: [] };
 
+window.openLessonFromBookAdmin = function (id) {
+  if (!allLessons.some(lesson => String(lesson.id) === String(id))) {
+    showToast('Lesson not loaded in Library. Please refresh and try again.', true);
+    return false;
+  }
+  openDetailView(id);
+  enterEditMode();
+  return true;
+};
+
 function enterEditMode() {
   const l = _currentLesson;
   if (!l) return;
