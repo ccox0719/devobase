@@ -158,7 +158,12 @@ export async function mountBookAdmin({ client, userId }) {
         const body = element('div',null,details,'lesson-body');
         const suggestion = suggestions.get(String(item.id));
         element('p','Editorial status: '+(lesson.editorial_status || 'Needs Review')+' · Assigned day: '+(lesson.assigned_day || 'Not assigned')+' · Suggested day: '+(suggestion ? suggestion.day+' ('+suggestion.theme+')' : 'Awaiting space'),body);
-        element('p','Review only. To edit a devotional, use the regular Library editor.',body,'muted');
+        const editLink=element('button','Edit in Library',body);
+        editLink.type='button';
+        editLink.onclick=()=>{
+          if (typeof window.openLessonFromBookAdmin !== 'function') { alert('Library editor is unavailable. Please reload.'); return; }
+          if (window.openLessonFromBookAdmin(lesson.id)) root.remove();
+        };
         element('p','Checks: '+Object.entries(item.checks).map(([name,ok]) => name+': '+(ok?'Pass':'Review')).join(' · '),body,'muted');
         if (item.formattingIssues.length) element('p','Detection issues: '+item.formattingIssues.join(', '),body);
         if (item.missingContent.length) element('p','Check original for: '+item.missingContent.join(', '),body);
