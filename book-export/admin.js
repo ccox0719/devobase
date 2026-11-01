@@ -85,7 +85,7 @@ export async function mountBookAdmin({ client, userId }) {
   element('div', 'PRIVATE EDITORIAL WORKSPACE', wrap, 'eyebrow');
   element('h1', 'Book Admin', wrap);
   element('p', 'Review the collection before arranging and approving the 365-day book.', wrap, 'muted');
-  element('div', 'Private editorial workspace. Changes save only when you press Save. Publication approval is always explicit.', wrap, 'hint');
+  element('div', 'Private review workspace. Lesson editing is available in the regular Library. Publication approval remains separate.', wrap, 'hint');
   const status = element('div', 'Loading and verifying your library…', wrap);
   status.setAttribute('role', 'status');
   try {
@@ -158,74 +158,7 @@ export async function mountBookAdmin({ client, userId }) {
         const body = element('div',null,details,'lesson-body');
         const suggestion = suggestions.get(String(item.id));
         element('p','Editorial status: '+(lesson.editorial_status || 'Needs Review')+' · Assigned day: '+(lesson.assigned_day || 'Not assigned')+' · Suggested day: '+(suggestion ? suggestion.day+' ('+suggestion.theme+')' : 'Awaiting space'),body);
-        const editor = element('div',null,body,'editor');
-        const field = (name,value,kind='input',wide=false) => {
-          const label = element('label',name,editor,wide?'wide':'');
-          const input = element(kind,null,label);
-          if (kind !== 'select') input.value = value ?? '';
-          return input;
-        };
-        const titleInput=field('Lesson title',lesson.title);
-        const scriptureInput=field('Scripture reference',lesson.scripture_ref);
-        const verseInput=field('Key verse text',lesson.key_verse,'textarea',true);
-        verseInput.style.minHeight='75px';
-        const verseRefInput=field('Key verse reference',lesson.key_verse_ref);
-        const seriesInput=field('Series name',lesson.series_name);
-        const seriesOrderInput=field('Series order',lesson.series_order);
-        seriesOrderInput.type='number';seriesOrderInput.min='1';
-        const dayInput=field('Assigned reading day (1–365)',lesson.assigned_day);
-        dayInput.type='number';dayInput.min='1';dayInput.max='365';
-        const statusInput=field('Editorial status',null,'select');
-        for (const [value,label] of [['needs_review','Needs Review'],['needs_revision','Needs Revision'],['ready_for_approval','Ready for Approval'],['approved','Approved for Publication']]) {
-          const option=element('option',label,statusInput);option.value=value;
-        }
-        statusInput.value=lesson.editorial_status || 'needs_review';
-        const rawInput=field('Original devotional text (authoritative)',lesson.raw_text,'textarea',true);
-        const actions=element('div',null,body,'toolbar');
-        const save=element('button','Save Editorial Changes',actions);
-        save.className='save';
-        const message=element('span','',actions);
-        save.onclick=async()=>{
-          const dayText=dayInput.value.trim();
-          const day=dayText ? Number(dayText) : null;
-          const seriesOrderText=seriesOrderInput.value.trim();
-          const seriesOrder=seriesOrderText ? Number(seriesOrderText) : null;
-          const newStatus=statusInput.value;
-          if (day!==null && (!Number.isInteger(day)||day<1||day>365)) {message.textContent='Reading day must be 1–365.';return;}
-          if (seriesOrder!==null && (!Number.isInteger(seriesOrder)||seriesOrder<1)) {message.textContent='Series order must be positive.';return;}
-          if (newStatus==='approved' && day===null) {message.textContent='Assign a reading day before approving.';return;}
-          if (!titleInput.value.trim() || !rawInput.value.trim()) {message.textContent='Title and original text are required.';return;}
-          if (day!==null && lessons.some(l=>String(l.id)!==String(lesson.id) && Number(l.assigned_day)===day)) {message.textContent='Day '+day+' is already assigned to another lesson.';return;}
-          const changes={
-            title:titleInput.value.trim(),scripture_ref:scriptureInput.value.trim(),
-            key_verse:verseInput.value.trim(),key_verse_ref:verseRefInput.value.trim(),
-            series_name:seriesInput.value.trim()||null,series_order:seriesOrder,
-            raw_text:rawInput.value,assigned_day:day,editorial_status:newStatus
-          };
-          save.disabled=true;message.textContent='Saving…';
-          try {
-            const {data,error}=await client.from('devotional_lessons').update(changes)
-              .eq('id',lesson.id).eq('user_id',userId).select('id').single();
-            if(error) throw error;
-            if(!data) throw new Error('No lesson was updated.');
-            Object.assign(lesson,changes);
-            report = buildBookReadinessReport(lessons);
-            suggestions = suggestReadingDays(lessons);
-            statValues[0].textContent = String(report.total);
-            statValues[1].textContent = String(report.structurallyComplete);
-            statValues[2].textContent = String(report.formattingReview);
-            statValues[3].textContent = String(lessons.filter(l=>l.editorial_status==='approved').length);
-            const previousScroll = root.scrollTop;
-            render(lesson.id);
-            root.scrollTop = previousScroll;
-            const updated = [...list.querySelectorAll('details')].find(d=>d.open);
-            if (updated) {
-              const feedback=element('p','Saved successfully. Readiness and approval counts are up to date.',updated.querySelector('.lesson-body'),'muted');
-              feedback.setAttribute('role','status');
-            }
-          } catch(error) {message.textContent='Save failed: '+(error.message||'Unknown error');}
-          finally {save.disabled=false;}
-        };
+        element('p','Review only. To edit a devotional, use the regular Library editor.',body,'muted');
         element('p','Checks: '+Object.entries(item.checks).map(([name,ok]) => name+': '+(ok?'Pass':'Review')).join(' · '),body,'muted');
         if (item.formattingIssues.length) element('p','Detection issues: '+item.formattingIssues.join(', '),body);
         if (item.missingContent.length) element('p','Check original for: '+item.missingContent.join(', '),body);
