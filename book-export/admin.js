@@ -72,6 +72,8 @@ const css = `
 @media(max-width:620px){.book-admin .stats{grid-template-columns:repeat(2,minmax(0,1fr))}.book-admin .admin-wrap{padding:20px 16px 70px}}
 `;
 
+const reviewState = { search: '', filter: 'formatting_review', expandedId: null };
+
 export async function mountBookAdmin({ client, userId }) {
   document.getElementById('devobaseBookAdmin')?.remove();
   const root = element('div', null, document.body, 'book-admin');
@@ -130,14 +132,19 @@ export async function mountBookAdmin({ client, userId }) {
     const search = element('input', null, toolbar);
     search.type = 'search'; search.placeholder = 'Search title, Scripture, or series';
     search.setAttribute('aria-label','Search lessons');
+    search.value = reviewState.search;
     const filter = element('select', null, toolbar);
     filter.setAttribute('aria-label','Filter by formatting status');
     for (const [value,label] of [
       ['all','All lessons'],['complete','Structurally complete'],
       ['formatting_review','Formatting review'],['missing_content','Likely missing content']
     ]) { const option = element('option',label,filter); option.value=value; }
+    filter.value = reviewState.filter;
     const list = element('div', null, status);
-    function render(expandedId=null) {
+    function render(expandedId=reviewState.expandedId) {
+      reviewState.search = search.value;
+      reviewState.filter = filter.value;
+      reviewState.expandedId = expandedId;
       list.replaceChildren();
       const term = search.value.toLocaleLowerCase().trim();
       const matches = report.entries.filter(item =>
@@ -149,6 +156,7 @@ export async function mountBookAdmin({ client, userId }) {
       for (const item of matches) {
         const details = element('details', null, list, 'lesson');
         if (String(item.id) === String(expandedId)) details.open = true;
+        details.addEventListener('toggle', () => { if (details.open) reviewState.expandedId = item.id; });
         const lesson = byId.get(String(item.id));
         const summary = element('summary', null, details);
         element('div',item.title,summary,'lesson-title');
@@ -165,14 +173,14 @@ export async function mountBookAdmin({ client, userId }) {
           if (window.openLessonFromBookAdmin(lesson.id)) root.remove();
         };
         element('p','Checks: '+Object.entries(item.checks).map(([name,ok]) => name+': '+(ok?'Pass':'Review')).join(' · '),body,'muted');
-        if (item.formattingIssues.length) element('p','Detection issues: '+item.formattingIssues.join(', '),body);
-        if (item.missingContent.length) element('p','Check original for: '+item.missingContent.join(', '),body);
+        if (item.formattingIssues.length) element('p','Formatting to review: '+item.formattingIssues.join(', '),body);
+        if (item.missingContent.length) element('p','Content to review: '+item.missingContent.join(', '),body);
         element('h2','Original lesson text',body);
         element('div',byId.get(String(item.id))?.raw_text || 'No original text stored.',body,'original');
       }
     }
-    search.addEventListener('input',render);
-    filter.addEventListener('change',render);
+    search.addEventListener('input',()=>render(null));
+    filter.addEventListener('change',()=>render(null));
     render();
   } catch (error) {
     if (root.isConnected) status.textContent = 'Could not safely load the complete library: '+(error?.message || 'Unknown error');
