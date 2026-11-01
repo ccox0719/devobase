@@ -18,7 +18,7 @@ async function fetchLessons(client, userId) {
   const lessons = [];
   for (let offset = 0; offset < count; offset += 200) {
     const result = await client.from('devotional_lessons')
-      .select('id,title,scripture_ref,key_verse,key_verse_ref,raw_text,series_name,series_order,editorial_status,assigned_day,created_at')
+      .select('id,title,scripture_ref,key_verse,key_verse_ref,raw_text,series_name,series_order,editorial_status,review_status,assigned_day,created_at')
       .eq('user_id', userId).order('created_at', { ascending: true })
       .order('id', { ascending: true }).range(offset, offset + 199);
     if (result.error) throw result.error;
@@ -72,7 +72,7 @@ const css = `
 @media(max-width:620px){.book-admin .stats{grid-template-columns:repeat(2,minmax(0,1fr))}.book-admin .admin-wrap{padding:20px 16px 70px}}
 `;
 
-const reviewState = { search: '', filter: 'formatting_review', expandedId: null };
+const reviewState = { search: '', filter: 'all', reviewFilter: 'pending', expandedId: null };
 
 export async function mountBookAdmin({ client, userId }) {
   document.getElementById('devobaseBookAdmin')?.remove();
@@ -119,7 +119,7 @@ export async function mountBookAdmin({ client, userId }) {
     const statValues = [];
     for (const [value,label] of [
       [report.total,'Saved lessons'],[report.structurallyComplete,'Structurally complete'],
-      [report.formattingReview,'Formatting review'],[lessons.filter(l=>l.editorial_status==='approved').length,'Approved for publication']
+      [report.formattingReview,'Formatting review'],[lessons.filter(l=>l.review_status==='reviewed').length,'Manually reviewed'],[lessons.filter(l=>l.editorial_status==='approved').length,'Approved for publication']
     ]) {
       const card = element('div', null, stats, 'stat');
       statValues.push(element('strong', value, card)); element('span', label, card);
@@ -143,6 +143,10 @@ export async function mountBookAdmin({ client, userId }) {
     const nextButton = element('button', 'Review Next →', toolbar);
     nextButton.type = 'button';
     nextButton.title = 'Open the next devotional that still needs review';
+    const reviewFilter = element('select', null, toolbar);
+    reviewFilter.setAttribute('aria-label','Filter by manual review status');
+    for (const [value,label] of [['pending','Pending review'],['needs_revision','Needs revision'],['reviewed','Reviewed'],['all','All review statuses']]) { const option=element('option',label,reviewFilter); option.value=value; }
+    reviewFilter.value = reviewState.reviewFilter || 'pending';
     const list = element('div', null, status);
     let visibleReviewIds = [];
     function advanceReview() {
@@ -157,14 +161,16 @@ export async function mountBookAdmin({ client, userId }) {
     function render(expandedId=reviewState.expandedId) {
       reviewState.search = search.value;
       reviewState.filter = filter.value;
+      reviewState.reviewFilter = reviewFilter.value;
       reviewState.expandedId = expandedId;
       list.replaceChildren();
       const term = search.value.toLocaleLowerCase().trim();
       const matches = report.entries.filter(item =>
         (filter.value === 'all' || item.reviewStatus === filter.value) &&
+        (reviewFilter.value === 'all' || (byId.get(String(item.id))?.review_status || 'pending') === reviewFilter.value) &&
         [item.title,item.scripture,item.seriesName].some(value => String(value || '').toLocaleLowerCase().includes(term))
       );
-      visibleReviewIds = matches.filter(item => !item.complete).map(item => item.id);
+      visibleReviewIds = matches.filter(item => (byId.get(String(item.id))?.review_status || 'pending') !== 'reviewed').map(item => item.id);
       nextButton.disabled = visibleReviewIds.length === 0;
       nextButton.textContent = visibleReviewIds.length ? 'Review Next →' : 'No reviews pending';
       element('p', matches.length + ' of ' + report.total + ' lessons · ' + visibleReviewIds.length + ' needing review', list, 'muted');
@@ -182,6 +188,27 @@ export async function mountBookAdmin({ client, userId }) {
         const body = element('div',null,details,'lesson-body');
         const suggestion = suggestions.get(String(item.id));
         element('p','Editorial status: '+(lesson.editorial_status || 'Needs Review')+' · Assigned day: '+(lesson.assigned_day || 'Not assigned')+' · Suggested day: '+(suggestion ? suggestion.day+' ('+suggestion.theme+')' : 'Awaiting space'),body);
+        const reviewControls = element('div', null, body, 'toolbar');
+        const currentReview = element('strong', 'Review: ' + (lesson.review_status || 'pending').replaceAll('_',' '), reviewControls);
+        async function setReviewStatus(value) {
+          const buttons = [...reviewControls.querySelectorAll('button')];
+          buttons.forEach(button => button.disabled = true);
+          const {data,error} = await client.from('devotional_lessons').update({review_status:value}).eq('id',lesson.id).eq('user_id',userId).select('id,review_status').single();
+          if (error || !data) {
+            alert('Review status could not be saved: '+(error?.message || 'No matching lesson'));
+            buttons.forEach(button => button.disabled = false);
+            return;
+          }
+          lesson.review_status = data.review_status;
+          reviewState.expandedId = null;
+          render(null);
+        }
+        for (const [value,label] of [['reviewed','Mark as Reviewed'],['needs_revision','Needs Revision'],['pending','Reset to Pending']]) {
+          const button=element('button',label,reviewControls);
+          button.type='button';
+          button.disabled=(lesson.review_status || 'pending')===value;
+          button.onclick=()=>setReviewStatus(value);
+        }
         const editLink=element('button','Edit in Library',body);
         editLink.type='button';
         editLink.onclick=()=>{
@@ -197,6 +224,7 @@ export async function mountBookAdmin({ client, userId }) {
     }
     search.addEventListener('input',()=>render(null));
     filter.addEventListener('change',()=>render(null));
+    reviewFilter.addEventListener('change',()=>render(null));
     render();
   } catch (error) {
     if (root.isConnected) status.textContent = 'Could not safely load the complete library: '+(error?.message || 'Unknown error');
