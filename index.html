@@ -2525,6 +2525,12 @@ function enterEditMode() {
         <textarea class="dv-edit-ta" id="edit-notes" style="min-height:100px">${esc(l.leading_notes || '')}</textarea>
       </div>
 
+      <div class="dv-edit-field">
+        <div class="dv-edit-label">Complete Devotional Text (Book Admin source)</div>
+        <div style="font-size:12px;opacity:.75;margin-bottom:8px">Edit this text to resolve Book Admin formatting and content checks. Fields above are saved separately.</div>
+        <textarea class="dv-edit-ta" id="edit-raw" style="min-height:420px;font-family:monospace;white-space:pre-wrap">${esc(l.raw_text || '')}</textarea>
+      </div>
+
       <div class="dv-edit-actions">
         <button class="dv-save-btn" id="dvSaveBtn" onclick="saveEditedLesson()">Save Changes</button>
         <button class="dv-cancel-btn" onclick="cancelEditMode()">Cancel</button>
@@ -2572,6 +2578,7 @@ async function saveEditedLesson() {
   const newRef = document.getElementById('edit-ref').value.trim();
   const updates = {
     title:             document.getElementById('edit-title').value.trim() || l.title,
+    raw_text:          document.getElementById('edit-raw').value,
     scripture_ref:     newRef || null,
     tone:              document.getElementById('edit-tone').value.trim() || null,
     key_verse:         document.getElementById('edit-kv').value.trim() || null,
