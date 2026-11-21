@@ -25,6 +25,57 @@ button:focus-visible,input:focus-visible,select:focus-visible,[contenteditable]:
 .content u,.editor u{text-decoration-color:var(--gold);text-decoration-thickness:2px;text-underline-offset:4px}
 .content::selection,.content *::selection{background:#e5cf9b}
 .content br{line-height:1.75}
+
+/* Reader-only chapter rhythm and lexicon panels. These styles never change stored text. */
+.content .study-part-heading{
+  margin:54px 0 23px;
+  padding-top:27px;
+  border-top:1px solid #d8cbb3;
+  font:500 clamp(27px,5vw,35px)/1.25 'Cormorant Garamond',Georgia,serif;
+  color:#403124;
+}
+.content .word-study-heading{
+  margin:42px 0 0;
+  padding:21px 25px 5px;
+  border:1px solid #d6c7a8;
+  border-bottom:0;
+  border-left:3px solid #b07d2a;
+  border-radius:6px 6px 0 0;
+  background:#f8f2e5;
+  color:#493c2c;
+  font:500 clamp(24px,4.5vw,30px)/1.22 'Cormorant Garamond',Georgia,serif;
+}
+.content .word-study-heading::before{
+  content:'GREEK WORD STUDY';
+  display:block;
+  margin:0 0 12px;
+  color:#98713b;
+  font:700 10px/1.4 Karla,sans-serif;
+  letter-spacing:.2em;
+}
+.content .word-study-definition{
+  margin:0 0 29px;
+  padding:9px 25px 22px;
+  border:1px solid #d6c7a8;
+  border-top:0;
+  border-left:3px solid #b07d2a;
+  border-radius:0 0 6px 6px;
+  background:#f8f2e5;
+  color:#574936;
+  font:italic 18px/1.65 Georgia,serif;
+}
+.content .word-study-heading:not(:has(+ .word-study-definition)){
+  margin-bottom:28px;
+  padding-bottom:22px;
+  border-bottom:1px solid #d6c7a8;
+  border-radius:6px;
+}
+@media(max-width:520px){
+  .content .word-study-heading{margin-top:34px;padding:19px 18px 5px}
+  .content .word-study-definition{padding:8px 18px 20px;font-size:17px}
+  .content .study-part-heading{margin-top:42px;padding-top:23px}
+}
+
 .reader-nav{border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:12px;margin-top:45px;padding-top:22px}
 .helper{font-size:12px;color:var(--ink3);text-align:center;margin:22px 0 0}
 .status{font-size:12px;color:var(--ink3);text-align:center;min-height:20px;margin:10px 0}
