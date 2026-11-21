@@ -1,37 +1,83 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Bible Study | DevoBase</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-:root{color-scheme:light;--ink:#25322b;--muted:#657367;--cream:#f8f7f1;--paper:#fff;--green:#355e4b;--border:#e4e6de;--gold:#c49c50}
-*{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);font:16px/1.6 Georgia,serif}button,input,textarea{font:inherit}button{cursor:pointer}
-header{border-bottom:1px solid var(--border);background:#fff}header .inner{max-width:1160px;margin:auto;padding:14px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px}.brand{font:700 19px system-ui,sans-serif;color:var(--green);text-decoration:none}.brand small{display:block;font-size:11px;letter-spacing:2px;color:var(--muted);font-weight:500;text-transform:uppercase}.back{color:var(--muted);font:13px system-ui,sans-serif;text-decoration:none}
-.layout{max-width:1160px;margin:32px auto;display:grid;grid-template-columns:270px minmax(0,1fr);gap:28px;padding:0 22px}aside{align-self:start}h1{font-size:36px;font-weight:400;letter-spacing:-.8px;margin:0 0 9px}p.sub{color:var(--muted);margin:0 0 26px}.eyebrow{font:700 11px system-ui,sans-serif;letter-spacing:2.1px;text-transform:uppercase;color:var(--green)}.panel{background:#fff;border:1px solid var(--border);border-radius:12px;padding:17px}.stack{display:grid;gap:10px}.study-link{display:block;width:100%;text-align:left;border:1px solid var(--border);background:white;border-radius:8px;padding:12px;color:var(--ink)}.study-link.active{border-color:var(--green);background:#f0f5ef}.study-link strong{display:block;font:600 14px system-ui,sans-serif}.study-link span{display:block;font:12px system-ui,sans-serif;color:var(--muted);margin-top:4px}.btn{border:1px solid var(--green);background:var(--green);color:white;border-radius:8px;padding:10px 15px;font:600 13px system-ui,sans-serif}.btn.secondary{background:#fff;color:var(--green)}.btn.quiet{background:transparent;border-color:var(--border);color:var(--muted)}.btn:focus-visible,.study-link:focus-visible,input:focus-visible,.editor:focus-visible{outline:3px solid #bad7c4;outline-offset:2px}
-.work{min-width:0}.note{background:#eff3e9;border:1px solid #dae2d3;border-radius:9px;padding:11px 15px;font:13px/1.5 system-ui,sans-serif;color:#435742;margin-bottom:20px}.sheet{background:var(--paper);border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 38px #2233220c;padding:clamp(22px,5vw,54px)}.meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}label{font:600 12px system-ui,sans-serif;color:var(--muted)}input{display:block;width:100%;border:1px solid var(--border);border-radius:7px;padding:11px;margin-top:6px;color:var(--ink);background:white}.toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:20px 0;padding:11px 0;border-block:1px solid var(--border)}.status{font:12px system-ui,sans-serif;color:var(--muted);margin-left:auto}.editor{min-height:470px;outline:none;white-space:pre-wrap;overflow-wrap:anywhere;font:17px/1.9 Georgia,serif}.editor:empty:before{content:attr(data-placeholder);color:#8c958f}.editor u{text-decoration-thickness:1.5px;text-underline-offset:4px;text-decoration-color:var(--green)}.editor::selection{background:#dce9d7}.help{font:12px/1.6 system-ui,sans-serif;color:var(--muted);margin-top:20px}.actions{display:flex;justify-content:space-between;gap:10px;margin-top:22px;flex-wrap:wrap}.empty{padding:58px 20px;text-align:center;color:var(--muted)}.empty h2{font-weight:400;color:var(--ink)}@media(max-width:780px){.layout{grid-template-columns:1fr;margin-top:20px}aside .stack{display:flex;overflow:auto}aside .study-link{min-width:190px}h1{font-size:29px}.meta{grid-template-columns:1fr}.sheet{padding:20px}.editor{min-height:380px}}
-</style>
-</head>
-<body>
-<header><div class="inner"><a class="brand" href="index.html">DevoBase <small>Personal Bible Studies</small></a><a class="back" href="index.html">← Back to DevoBase</a></div></header>
-<main class="layout">
-<aside><div class="panel"><div class="eyebrow">Study Library</div><p style="font-size:14px;color:var(--muted)">A separate home for inductive Bible studies.</p><div id="studyList" class="stack"></div><button id="new" class="btn" style="width:100%;margin-top:14px">+ New study</button></div></aside>
-<section class="work"><div class="eyebrow">Read · Observe · Interpret · Apply</div><h1>Her Study Space</h1><p class="sub">An open Bible, a thoughtful question, and room to discover.</p>
-<div class="note">A separate study collection within your shared DevoBase login. Either of you can edit these studies. They never enter the 365-day book.</div>
-<div class="panel" style="margin-bottom:18px;font:13px system-ui,sans-serif">
-<p><strong id="modeLabel">Browser drafts</strong> · <span id="cloudNotice">Local browser drafts are separate from your shared DevoBase account studies.</span></p>
-<div id="authPanel"><strong>Use your existing DevoBase login</strong><div class="meta"><label>Email<input type="email" id="authEmail" autocomplete="email"></label><label>Password<input type="password" id="authPassword" autocomplete="current-password"></label></div><button id="signIn" class="btn">Sign in</button></div>
-<div id="signedIn" hidden><span id="userName"></span> <button id="signOut" class="btn quiet">Sign out</button></div>
-<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button id="modeSwitch" class="btn secondary">View account studies</button><select id="localSource" aria-label="Choose browser draft"></select><button id="copyLocal" class="btn secondary" hidden>Copy draft to account</button></div>
-<p id="cloudStatus" role="status" style="color:#637166;margin:12px 0 0">Browser drafts ready</p>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#b07d2a"><title>Bible Studies | DevoBase</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Karla:wght@400;500;600;700&display=swap');
+:root{--bg:#f2ece0;--surface:#faf6ee;--ink:#1e1a12;--ink2:#4a4030;--ink3:#7a6e58;--gold:#b07d2a;--border:#ddd5be}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Karla,sans-serif;font-size:14px}
+button,input,select{font:inherit}button{cursor:pointer;color:var(--ink2);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:10px 12px}
+button:disabled{opacity:.4;cursor:default}
+button:focus-visible,input:focus-visible,select:focus-visible,[contenteditable]:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+[hidden]{display:none!important}
+.topbar{position:sticky;top:0;z-index:10;background:rgba(242,236,224,.97);border-bottom:1px solid var(--border);backdrop-filter:blur(12px)}
+.topinner{max-width:850px;margin:auto;padding:13px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.home{color:var(--ink2);text-decoration:none;border:1px solid var(--border);border-radius:4px;padding:10px 12px}
+.space{flex:1}
+.study-select{min-width:175px;max-width:290px;flex:1; padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--ink2)}
+.action{font-weight:600}
+.underline-btn{color:var(--ink);border-color:#c7ab74;background:#eee3c8}
+.underline-btn u{text-underline-offset:3px;text-decoration-thickness:2px}
+.page{max-width:680px;margin:auto;padding:35px 26px 95px}
+.kicker{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);text-align:center}
+.title{font:400 clamp(39px,8vw,64px)/1.07 'Cormorant Garamond',Georgia,serif;text-align:center;margin:16px 0}
+.reference{color:var(--ink3);text-align:center;margin:0 0 32px;line-height:1.65}
+.content{font:17px/1.73 Georgia,serif;overflow-wrap:anywhere}
+.content p{margin:0 0 17px;line-height:1.73}
+.content h2,.content h3{font:500 29px/1.2 'Cormorant Garamond',Georgia,serif;margin:28px 0 15px;letter-spacing:0}
+.content h3{font-size:24px}
+.content u,.editor u{text-decoration-color:var(--gold);text-decoration-thickness:2px;text-underline-offset:4px}
+.content::selection,.content *::selection{background:#e5cf9b}
+.content br{line-height:1.75}
+.reader-nav{border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:12px;margin-top:45px;padding-top:22px}
+.helper{font-size:12px;color:var(--ink3);text-align:center;margin:22px 0 0}
+.status{font-size:12px;color:var(--ink3);text-align:center;min-height:20px;margin:10px 0}
+.editor-panel{max-width:780px;margin:20px auto 70px;padding:20px;border:1px solid var(--border);background:var(--surface);border-radius:6px}
+.editor-panel label{display:block;font-weight:600;margin:12px 0}
+.editor-panel input{display:block;margin-top:5px;width:100%;padding:11px;border:1px solid var(--border);background:white}
+.editor{min-height:450px;outline:none;padding:25px;background:white;border:1px solid var(--border);white-space:pre-wrap;overflow-wrap:anywhere;font:17px/1.8 Georgia,serif}
+.edit-actions{display:flex;gap:9px;flex-wrap:wrap;margin:15px 0}
+.authbox{max-width:670px;margin:35px auto 0;padding:17px;background:var(--surface);border:1px solid var(--border)}
+.authfields{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.authfields label{flex:1;min-width:160px}
+.authfields input{width:100%;padding:10px;margin-top:4px;border:1px solid var(--border)}
+.localtools{margin:22px auto 0;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
+.localtools select{padding:9px;max-width:220px}
+.empty{text-align:center;margin:80px 0;color:var(--ink3)}
+.empty h2{font:400 35px 'Cormorant Garamond',Georgia,serif;color:var(--ink)}
+.floating-underline{position:fixed;z-index:30;bottom:calc(22px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);border-radius:30px;padding:13px 22px;background:#342719;color:#fff;border:1px solid #c19c62;box-shadow:0 6px 24px #1e1a1250;font-size:14px;font-weight:700}
+@media(max-width:520px){.topinner{padding:10px 12px;gap:7px}.home{font-size:12px}.study-select{order:4;max-width:none;width:100%;flex-basis:100%}.page{padding:28px 22px 80px}.content{font-size:16px}.action{font-size:12px;padding:9px}.reader-nav button{flex:1}}
+</style></head><body><header class="topbar"><nav class="topinner" aria-label="Study navigation">
+<a class="home" href="index.html">← Library</a>
+<strong class="space" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:23px;font-weight:500">Bible Studies</strong>
+<button class="action underline-btn" id="underline" title="Underline the selected text"><u>U</u> Underline</button>
+<button class="action" id="editToggle" aria-pressed="false">Edit study</button>
+<select class="study-select" id="studyChooser" aria-label="Choose a Bible study"></select>
+</nav></header>
+<div id="authPanel" class="authbox" hidden><strong>Use your existing DevoBase login to read your studies</strong><div class="authfields"><label>Email<input id="authEmail" type="email" autocomplete="email"></label><label>Password<input id="authPassword" type="password" autocomplete="current-password"></label><button id="signIn">Sign in</button></div></div>
+<div id="signedIn" hidden style="text-align:center;margin-top:12px;color:var(--ink3);font-size:12px"><span id="userName"></span> <button id="signOut">Sign out</button></div>
+<main id="reading" class="page">
+<div id="empty" class="empty"><h2>No studies yet</h2><p>Create a new study or switch to your account library.</p></div>
+<article id="reader" hidden>
+<div class="kicker">REFINED BY FAITH · PERSONAL BIBLE STUDIES</div>
+<h1 class="title" id="readerTitle"></h1>
+<div class="reference" id="readerReference"></div>
+<div id="readerContent" class="content" aria-label="Study text. Select text to underline."></div>
+<div class="reader-nav"><button id="previous">← Previous</button><button id="next">Next →</button></div>
+<p class="helper">Select a sentence or phrase, then tap <strong>Underline</strong>. Keep answers in your journal.</p>
+</article>
+<p class="status" id="status" role="status">Loading studies…</p>
+</main>
+<section id="workarea" class="editor-panel" hidden aria-label="Edit study">
+<h2 style="font:400 35px 'Cormorant Garamond',Georgia,serif;margin:0 0 12px">Edit study</h2>
+<label>Title<input id="title"></label>
+<label>Scripture and series<input id="reference"></label>
+<div class="edit-actions"><button id="removeFormat">Clear selected formatting</button><button id="download">Export study</button><button id="delete">Delete study</button><button id="doneEditing" class="underline-btn">Done editing</button></div>
+<div id="editor" class="editor" contenteditable="true" role="textbox" aria-label="Editable study content" aria-multiline="true"></div>
+<p style="font-size:12px;color:var(--ink3)">Your wording and underlines save to your shared DevoBase account. Answers can stay in a paper journal.</p>
+</section>
+<button id="floatingUnderline" class="floating-underline" hidden><u>U</u> Underline selection</button>
+<div class="localtools">
+<button id="new">+ New Study</button>
+<button id="modeSwitch">View browser drafts</button>
+<select id="localSource" aria-label="Choose browser draft"></select>
+<button id="copyLocal" hidden>Copy browser draft to account</button>
 </div>
-<div id="empty" class="empty"><h2>Start a study</h2><p>Create a new one or paste an existing study. Her journal can hold the answers.</p></div>
-<div id="workarea" hidden><div class="sheet">
-<div class="meta"><label>Study title<input id="title" placeholder="e.g. Loving the One We Have Not Seen"></label><label>Scripture / series<input id="reference" placeholder="e.g. 1 Peter 1:8–9 · Study 3"></label></div>
-<div class="toolbar"><button id="underline" class="btn secondary" title="Underline selected text (Ctrl/Cmd + U)"><u>U</u> Underline</button><button id="removeFormat" class="btn quiet" title="Remove formatting from selected text">Clear formatting</button><span class="status" id="status" role="status">Saved locally</span></div>
-<div id="editor" class="editor" role="textbox" aria-label="Editable study content" aria-multiline="true" contenteditable="true" data-placeholder="Paste a Bible study here or begin writing. Select text and click Underline to mark a key observation."></div>
-<div class="help">Tip: Highlight any text and select <strong>Underline</strong>. Click anywhere to edit the wording. Questions are intended for your paper journal.</div>
-<div class="actions"><button id="download" class="btn secondary">Export study (.html)</button><button id="delete" class="btn quiet">Delete this local study</button></div>
-</div></div>
-</section></main>
-<script defer src="studies-sync.js"></script>
-</body></html>
+<p id="cloudStatus" class="status" role="status"></p>
+<div id="modeLabel" hidden></div><div id="cloudNotice" hidden></div>
+<script defer src="studies-sync.js"></script></body></html>
