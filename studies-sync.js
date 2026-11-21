@@ -181,7 +181,7 @@ async function loadConfig(){
 }
 async function setSession(session){
  const next=session?.user||null;
- if(user?.id===next?.id)return;
+ if(user?.id && user.id===next?.id)return;
  if(timer&&!(await save()))return;
  user=next;
  $('authPanel').hidden=!!user;
