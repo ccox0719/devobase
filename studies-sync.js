@@ -20,7 +20,7 @@ function sanitize(html) {
       if(n.nodeType !== 1) continue;
       if(n.tagName==='SPAN') {
         const style=(n.getAttribute('style')||'').toLowerCase();
-        const isUnderlined=/text-decoration(?:-line)?\\s*:\\s*[^;]*underline/.test(style);
+        const isUnderlined=/text-decoration(?:-line)?\s*:\s*[^;]*underline/.test(style);
         const replacement=document.createElement(isUnderlined?'u':'span');
         while(n.firstChild)replacement.appendChild(n.firstChild);
         n.replaceWith(replacement);
