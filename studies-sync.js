@@ -71,6 +71,21 @@ function renderChooser(){
  picker.value=activeId||'';
  picker.hidden=!studies.length;
 }
+function decorateStudySections(){
+ const root=$('readerContent');
+ const nodes=[...root.querySelectorAll('h2,h3,h4')];
+ for(const heading of nodes){
+   const text=(heading.textContent||'').trim();
+   if(/^WORD\s+STUDY\s*:/i.test(text)){
+     heading.classList.add('word-study-heading');
+     const definition=heading.nextElementSibling;
+     if(definition?.tagName==='P')definition.classList.add('word-study-definition');
+   } else if(/^(?:PART\s+(?:ONE|TWO|THREE|FOUR|FIVE|SIX)\b|FINAL\s+DISCOVERY\b|BEFORE\s+YOU\s+BEGIN\b|APPLICATION\s*\|)/i.test(text)){
+     heading.classList.add('study-part-heading');
+   }
+ }
+}
+
 function render(){
  const r=active();savedRange=null;renderChooser();
  $('empty').hidden=!!r;
@@ -82,6 +97,7 @@ function render(){
  $('readerTitle').textContent=r.title||'Untitled study';
  $('readerReference').textContent=r.scripture_ref??r.reference??'';
  $('readerContent').innerHTML=sanitize(r.content_html??r.content??'');
+ decorateStudySections();
  $('readerContent').contentEditable='true';
  $('readerContent').setAttribute('spellcheck','false');
  $('title').value=r.title||'';
