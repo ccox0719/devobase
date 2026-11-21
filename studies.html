@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Bible Study | DevoBase</title>
+<title>Bible Study | DevoBase</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{color-scheme:light;--ink:#25322b;--muted:#657367;--cream:#f8f7f1;--paper:#fff;--green:#355e4b;--border:#e4e6de;--gold:#c49c50}
 *{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);font:16px/1.6 Georgia,serif}button,input,textarea{font:inherit}button{cursor:pointer}
@@ -16,7 +16,14 @@ header{border-bottom:1px solid var(--border);background:#fff}header .inner{max-w
 <main class="layout">
 <aside><div class="panel"><div class="eyebrow">Study Library</div><p style="font-size:14px;color:var(--muted)">A separate home for inductive Bible studies.</p><div id="studyList" class="stack"></div><button id="new" class="btn" style="width:100%;margin-top:14px">+ New study</button></div></aside>
 <section class="work"><div class="eyebrow">Read · Observe · Interpret · Apply</div><h1>Her Study Space</h1><p class="sub">An open Bible, a thoughtful question, and room to discover.</p>
-<div class="note"><strong>Private draft workspace.</strong> Changes are saved in this browser only, not to your DevoBase account. They won't sync across devices. Export a backup before clearing browser data. Studies here never enter the 365-day book.</div>
+<div class="note">A separate space for personal Bible studies. Nothing here enters the 365-day book.</div>
+<div class="panel" style="margin-bottom:18px;font:13px system-ui,sans-serif">
+<p><strong id="modeLabel">Browser drafts</strong> · <span id="cloudNotice">Local browser drafts are separate from your account studies.</span></p>
+<div id="authPanel"><strong>Sign in to sync studies</strong><div class="meta"><label>Email<input type="email" id="authEmail" autocomplete="email"></label><label>Password<input type="password" id="authPassword" autocomplete="current-password"></label></div><button id="signIn" class="btn">Sign in</button> <button id="signUp" class="btn secondary">Create account</button></div>
+<div id="signedIn" hidden><span id="userName"></span> <button id="signOut" class="btn quiet">Sign out</button></div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button id="modeSwitch" class="btn secondary">View account studies</button><select id="localSource" aria-label="Choose browser draft"></select><button id="copyLocal" class="btn secondary" hidden>Copy draft to account</button></div>
+<p id="cloudStatus" role="status" style="color:#637166;margin:12px 0 0">Browser drafts ready</p>
+</div>
 <div id="empty" class="empty"><h2>Start a study</h2><p>Create a new one or paste an existing study. Her journal can hold the answers.</p></div>
 <div id="workarea" hidden><div class="sheet">
 <div class="meta"><label>Study title<input id="title" placeholder="e.g. Loving the One We Have Not Seen"></label><label>Scripture / series<input id="reference" placeholder="e.g. 1 Peter 1:8–9 · Study 3"></label></div>
@@ -26,31 +33,5 @@ header{border-bottom:1px solid var(--border);background:#fff}header .inner{max-w
 <div class="actions"><button id="download" class="btn secondary">Export study (.html)</button><button id="delete" class="btn quiet">Delete this local study</button></div>
 </div></div>
 </section></main>
-<script>
-(() => {
-'use strict';
-const KEY='devobase:personal-studies:v1';
-const $=id=>document.getElementById(id);
-let records=[],active=null,saveHandle;
-const starter='COMPREHENSION | What does the text say?\n\nRead the passage slowly. Circle repeated words and note contrasts.\n\n1. What do you observe about the people, actions, and promises?\n\nINTERPRETATION | What does the text mean?\n\n2. What does the surrounding context clarify?\n3. Which cross-reference helps explain this passage?\n\nAPPLICATION | How should the text change me?\n\n4. What does this passage reveal about God?\n5. What response follows from that truth?\n\nJournal your answers separately.';
-function load(){try{const x=JSON.parse(localStorage.getItem(KEY)||'[]');records=Array.isArray(x)?x.filter(r=>r&&typeof r.id==='string'):[];}catch{records=[]}}
-function persist(){try{localStorage.setItem(KEY,JSON.stringify(records));$('status').textContent='Saved locally';}catch(e){$('status').textContent='Storage full: export a backup';}}
-function selected(){return records.find(r=>r.id===active)}
-function flush(){if(!active)return;const r=selected();if(!r)return;r.title=$('title').value;r.reference=$('reference').value;r.content=$('editor').innerHTML;r.updated=Date.now();persist()}
-function schedule(){clearTimeout(saveHandle);$('status').textContent='Saving…';saveHandle=setTimeout(()=>{flush();renderList()},300)}
-function renderList(){const list=$('studyList');list.replaceChildren();for(const r of records){const b=document.createElement('button');b.className='study-link'+(r.id===active?' active':'');const strong=document.createElement('strong');strong.textContent=r.title||'Untitled study';const small=document.createElement('span');small.textContent=r.reference||'Personal study';b.append(strong,small);b.onclick=()=>open(r.id);list.append(b)}}
-function open(id){clearTimeout(saveHandle);flush();active=id;const r=selected();$('empty').hidden=!!r;$('workarea').hidden=!r;if(r){$('title').value=r.title;$('reference').value=r.reference;$('editor').innerHTML=clean(r.content);$('status').textContent='Saved locally'}renderList()}
-function clean(html){const template=document.createElement('template');template.innerHTML=html||'';const allowed=new Set(['U','BR','DIV','P','B','STRONG','EM','I','UL','OL','LI','H2','H3','BLOCKQUOTE']);function walk(root){for(const node of [...root.childNodes]){if(node.nodeType===8){node.remove();continue}if(node.nodeType!==1)continue;if(!allowed.has(node.tagName)){const t=document.createTextNode(node.textContent||'');node.replaceWith(t);continue}for(const attr of [...node.attributes])node.removeAttribute(attr.name);walk(node)}}walk(template.content);return template.innerHTML}
-$('new').onclick=()=>{flush();const r={id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())),title:'New Bible Study',reference:'',content:starter.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('\n','<br>'),updated:Date.now()};records.unshift(r);persist();open(r.id);$('title').focus();$('title').select()};
-$('title').addEventListener('input',schedule);$('reference').addEventListener('input',schedule);$('editor').addEventListener('input',schedule);
-$('editor').addEventListener('paste',e=>{e.preventDefault();const text=e.clipboardData.getData('text/plain');document.execCommand('insertText',false,text)});
-for(const id of ['underline','removeFormat'])$(''+id).addEventListener('mousedown',e=>e.preventDefault());
-$('underline').onclick=()=>{ $('editor').focus();document.execCommand('underline',false,null);schedule()};
-$('removeFormat').onclick=()=>{$('editor').focus();document.execCommand('removeFormat',false,null);schedule()};
-$('delete').onclick=()=>{if(!selected()||!confirm('Delete this study from this browser? Export it first if you need a backup.'))return;records=records.filter(r=>r.id!==active);active=null;persist();open(records[0]?.id||null)};
-$('download').onclick=()=>{flush();const r=selected();if(!r)return;const doc='<!doctype html><html><head><meta charset="utf-8"><title>'+escapeHtml(r.title)+'</title><style>body{max-width:760px;margin:50px auto;padding:20px;font:18px/1.8 Georgia,serif;color:#25322b}u{text-underline-offset:4px}article{white-space:pre-wrap}</style></head><body><h1>'+escapeHtml(r.title)+'</h1><p>'+escapeHtml(r.reference)+'</p><article>'+clean(r.content)+'</article></body></html>';const blob=new Blob([doc],{type:'text/html'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=(r.title||'bible-study').replace(/[^a-z0-9-_]+/gi,'-')+'.html';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
-function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-window.addEventListener('beforeunload',flush);load();open(records[0]?.id||null);
-})();
-</script>
+<script defer src="studies-sync.js"></script>
 </body></html>
