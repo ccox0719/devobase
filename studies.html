@@ -16,10 +16,10 @@ header{border-bottom:1px solid var(--border);background:#fff}header .inner{max-w
 <main class="layout">
 <aside><div class="panel"><div class="eyebrow">Study Library</div><p style="font-size:14px;color:var(--muted)">A separate home for inductive Bible studies.</p><div id="studyList" class="stack"></div><button id="new" class="btn" style="width:100%;margin-top:14px">+ New study</button></div></aside>
 <section class="work"><div class="eyebrow">Read · Observe · Interpret · Apply</div><h1>Her Study Space</h1><p class="sub">An open Bible, a thoughtful question, and room to discover.</p>
-<div class="note">A separate space for personal Bible studies. Nothing here enters the 365-day book.</div>
+<div class="note">A separate study collection within your shared DevoBase login. Either of you can edit these studies. They never enter the 365-day book.</div>
 <div class="panel" style="margin-bottom:18px;font:13px system-ui,sans-serif">
-<p><strong id="modeLabel">Browser drafts</strong> · <span id="cloudNotice">Local browser drafts are separate from your account studies.</span></p>
-<div id="authPanel"><strong>Sign in to sync studies</strong><div class="meta"><label>Email<input type="email" id="authEmail" autocomplete="email"></label><label>Password<input type="password" id="authPassword" autocomplete="current-password"></label></div><button id="signIn" class="btn">Sign in</button> <button id="signUp" class="btn secondary">Create account</button></div>
+<p><strong id="modeLabel">Browser drafts</strong> · <span id="cloudNotice">Local browser drafts are separate from your shared DevoBase account studies.</span></p>
+<div id="authPanel"><strong>Use your existing DevoBase login</strong><div class="meta"><label>Email<input type="email" id="authEmail" autocomplete="email"></label><label>Password<input type="password" id="authPassword" autocomplete="current-password"></label></div><button id="signIn" class="btn">Sign in</button></div>
 <div id="signedIn" hidden><span id="userName"></span> <button id="signOut" class="btn quiet">Sign out</button></div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button id="modeSwitch" class="btn secondary">View account studies</button><select id="localSource" aria-label="Choose browser draft"></select><button id="copyLocal" class="btn secondary" hidden>Copy draft to account</button></div>
 <p id="cloudStatus" role="status" style="color:#637166;margin:12px 0 0">Browser drafts ready</p>
