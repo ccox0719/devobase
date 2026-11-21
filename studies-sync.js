@@ -18,6 +18,16 @@ function sanitize(html) {
     for(const n of [...root.childNodes]) {
       if(n.nodeType === 8) {n.remove();continue;}
       if(n.nodeType !== 1) continue;
+      if(n.tagName==='SPAN') {
+        const style=(n.getAttribute('style')||'').toLowerCase();
+        const isUnderlined=/text-decoration(?:-line)?\\s*:\\s*[^;]*underline/.test(style);
+        const replacement=document.createElement(isUnderlined?'u':'span');
+        while(n.firstChild)replacement.appendChild(n.firstChild);
+        n.replaceWith(replacement);
+        if(isUnderlined)walk(replacement);
+        else {walk(replacement);replacement.replaceWith(...replacement.childNodes);}
+        continue;
+      }
       if(!allowed.has(n.tagName)) {
         if (['SCRIPT','STYLE','IFRAME','SVG','OBJECT','FORM','TEMPLATE'].includes(n.tagName)) { n.remove();continue; }
         const text = document.createTextNode(n.textContent || '');
@@ -240,6 +250,7 @@ function init(){
  $('doneEditing').onclick=async()=>{if(!(await save()))return;editMode=false;render();};
  $('title').addEventListener('input',schedule);$('reference').addEventListener('input',schedule);$('editor').addEventListener('input',schedule);
  $('readerContent').addEventListener('input',schedule);
+ $('editor').addEventListener('paste',e=>{e.preventDefault();document.execCommand('insertText',false,e.clipboardData.getData('text/plain'));});
  $('readerContent').addEventListener('beforeinput',event=>{
    if(event.inputType==='formatUnderline'||event.inputType==='historyUndo'||event.inputType==='historyRedo')return;
    event.preventDefault();
